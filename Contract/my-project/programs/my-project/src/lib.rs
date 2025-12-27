@@ -9,13 +9,13 @@ pub mod my_project {
        pub fn initialize_ad(
         ctx: Context<InitializeAd>,
         ad_id: [u8; 32],
-        rate_per_view: u64,      // lamports per view
-        interval_seconds: i64,   // min seconds between payouts
+        rate_per_view: u64,      
+        interval_seconds: i64,   
     ) -> Result<()> {
         let ad = &mut ctx.accounts.ad;
         ad.ad_id = ad_id;
         ad.client = *ctx.accounts.client.key;
-        ad.authority = *ctx.accounts.authority.key; // oracle/updater permitted to call payout
+        ad.authority = *ctx.accounts.authority.key; 
         ad.rate_per_view = rate_per_view;
         ad.paid_views = 0;
         ad.interval_seconds = interval_seconds;

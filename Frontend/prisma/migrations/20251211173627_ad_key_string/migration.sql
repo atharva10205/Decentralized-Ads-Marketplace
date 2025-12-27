@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "AD_1" ALTER COLUMN "ad_id" SET DATA TYPE TEXT;
