@@ -1,6 +1,7 @@
 'use client'
 
-import { HelpCircle, User, ChevronRight, Check, Globe, Wallet } from 'lucide-react';
+import { HelpCircle, User,Globe, Wallet } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 export default function WebsiteRegistrationForm() {
@@ -13,6 +14,8 @@ export default function WebsiteRegistrationForm() {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
 
+    const router = useRouter();
+
     useEffect(() => {
         setErrors({});
     }, [websiteName, websiteURL, walletAddress, keywords, selectedNiches]);
@@ -20,6 +23,7 @@ export default function WebsiteRegistrationForm() {
     const handleKeyDown = (e) => {
         if (e.key === "Enter" || e.key === " " || e.key === ",") {
             e.preventDefault();
+
             const value = keywordInput.trim().toLowerCase();
             if (!value) return;
             if (!keywords.includes(value)) {
@@ -66,26 +70,44 @@ export default function WebsiteRegistrationForm() {
 
         return newErrors;
     };
+const handleSubmit = async () => {
+    const newErrors = validateForm();
+    setErrors(newErrors);
 
-    const handleSubmit = async () => {
-        setLoading(true);
-        const newErrors = validateForm();
-        setErrors(newErrors);
+    if (Object.keys(newErrors).length !== 0) return;
 
-        if (Object.keys(newErrors).length === 0) {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            console.log({
+    setLoading(true);
+
+    try {
+        const res = await fetch("/api/crud/Publisher-campaign", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
                 websiteName,
                 websiteURL,
                 walletAddress,
+                keywords,
                 selectedNiches,
-                keywords: keywordInput.trim() ? [...keywords, keywordInput.trim()] : keywords
-            });
-            alert("Website registered successfully!");
+            }),
+        });
+
+        if (!res.ok) {
+            throw new Error("Request failed");
         }
-        setLoading(false);
-    };
+
+        const data = await res.json();
+
+        if (data.success === true) {
+            setLoading(false);
+            router.push("Publisher/Websites")
+        }
+    } catch (err) {
+        console.error(err);
+        setLoading(false); 
+    }
+};
 
     return (
         <>
@@ -428,6 +450,7 @@ export default function WebsiteRegistrationForm() {
                                 <div className="px-8 py-6 bg-[#0a0a0a] border-t border-gray-800/50">
                                     <div className="flex items-center justify-between">
                                         <button
+                                        onClick={()=>{router.push("/Publisher/Websites")}}
                                             className="px-6 py-3 border-2 border-gray-800/50 text-gray-300 font-medium rounded-lg hover:bg-[#161616]/50 hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00FFA3] transition-all"
                                         >
                                             Cancel

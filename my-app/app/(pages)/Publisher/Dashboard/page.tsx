@@ -39,7 +39,7 @@ const Dashboard = () => {
                                 <Plus className="w-5 h-5" />
                                 Add Website
                             </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className="" />
                         </button>
                     </div>
 

@@ -1,12 +1,14 @@
 'use client'
 
-import { HelpCircle, User, ChevronRight, Check, X } from 'lucide-react';
+import { HelpCircle, User, ChevronRight, Check, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type Errors = {
+    title?: string;
     description?: string;
     selectedTags?: string;
     keywords?: string;
+    image?: string;
 };
 
 type StepProps = {
@@ -22,10 +24,14 @@ export default function Two({ adID, next, back }: StepProps) {
     const [errors, setErrors] = useState<Errors>({})
     const [selectedTags, setSelectedTags] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [Title, setTitle] = useState("")
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>("");
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     useEffect(() => {
         setErrors({})
-    }, [description, input, KeyWords, selectedTags])
+    }, [description, input, KeyWords, selectedTags, Title, imageFile])
 
     const handleKeyDown = (e) => {
         if (e.key === "Enter" || e.key === " " || e.key === ",") {
@@ -42,6 +48,34 @@ export default function Two({ adID, next, back }: StepProps) {
         }
     };
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                setErrors({ ...errors, image: "Please select a valid image file" });
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                setErrors({ ...errors, image: "Image size should be less than 5MB" });
+                return;
+            }
+
+            setImageFile(file);
+            
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeImage = () => {
+        setImageFile(null);
+        setImagePreview("");
+    };
+
     const removeTag1 = (index) => {
         setKeyWords(KeyWords.filter((_, i) => i !== index));
     };
@@ -51,37 +85,59 @@ export default function Two({ adID, next, back }: StepProps) {
 
         const newErrors: Errors = {}
 
+        if (Title === "") {
+            newErrors.title = "This field is mandatory"
+            setLoading(false)
+        }
+
         if (description === "") {
-            newErrors.description = "This field is mandatory",
-                setLoading(false)
+            newErrors.description = "This field is mandatory"
+            setLoading(false)
         }
 
         if (selectedTags.length === 0) {
-            newErrors.selectedTags = "This field is mandatory",
-                setLoading(false)
+            newErrors.selectedTags = "This field is mandatory"
+            setLoading(false)
         }
 
         if (KeyWords.length === 0 && input === "") {
-            newErrors.keywords = "This field is mandatory",
-                setLoading(false)
+            newErrors.keywords = "This field is mandatory"
+            setLoading(false)
+        }
+
+        if (!imageFile) {
+            newErrors.image = "Please upload an image"
+            setLoading(false)
         }
 
         setErrors(newErrors);
 
-        const res = await fetch("/api/crud/Advertiser-campaign-step-2", ({
-            method: "POST",
-            headers: {
-                "Content-type": "Application/JSON"
-            },
-            body: JSON.stringify({ KeyWords, description, selectedTags, input, adID })
-        }))
-
-        if (!res.ok) {
-            setLoading(false)
-        }
-
         if (Object.keys(newErrors).length === 0) {
-            next()
+            try {
+                const formData = new FormData();
+                formData.append('image', imageFile);
+                formData.append('KeyWords', JSON.stringify(KeyWords));
+                formData.append('description', description);
+                formData.append('selectedTags', JSON.stringify(selectedTags));
+                formData.append('input', input);
+                formData.append('adID', adID || '');
+                formData.append('Title', Title);
+
+                const res = await fetch("/api/crud/Advertiser-campaign-step-2", {
+                    method: "POST",
+                    body: formData
+                })
+
+                if (!res.ok) {
+                    setLoading(false)
+                    return;
+                }
+
+                next()
+            } catch (error) {
+                console.error('Error:', error);
+                setLoading(false)
+            }
         }
         setLoading(false)
     }
@@ -188,15 +244,50 @@ export default function Two({ adID, next, back }: StepProps) {
                                         </div>
 
                                         <div className="mb-10">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <label className="block text-lg font-semibold text-gray-200">
-                                                    Describe what makes your business unique
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-xl font-semibold text-gray-200">
+                                                    Title
                                                 </label>
                                             </div>
 
                                             <div className="max-w-3xl mb-2">
                                                 <p className="text-gray-400 mb-4">
-                                                    Learn more about how to set your business apart from similar ones
+                                                    Title which best represent your business
+                                                </p>
+
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        value={Title}
+                                                        onChange={(e) => setTitle(e.target.value)}
+                                                        placeholder='Try something like, "The best Web3 guide for Beginners"'
+                                                        className={`w-full px-4 py-3.5 rounded-lg outline-none transition-all border-2 bg-[#0a0a0a] text-gray-200 placeholder-gray-600
+                                                    ${errors.title
+                                                                ? "border-red-500/50"
+                                                                : "border-gray-800/50 focus:border-[#00FFA3] focus:shadow-lg focus:shadow-[#00FFA3]/10"
+                                                            }`}
+                                                        maxLength={3000}
+                                                    />
+                                                    {errors.title && (
+                                                        <p className="mt-2 text-sm text-red-400">{errors.title}</p>
+                                                    )}
+                                                    <div className="absolute bottom-3 right-3 text-sm text-gray-500 bg-[#0a0a0a] px-2 py-1 rounded">
+                                                        {Title.length} / 3000
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-10">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-lg font-semibold text-gray-200">
+                                                    Description
+                                                </label>
+                                            </div>
+
+                                            <div className="max-w-3xl mb-2">
+                                                <p className="text-gray-400 mb-4">
+                                                    Describe what makes your business unique
                                                 </p>
 
                                                 <div className="relative">
@@ -219,6 +310,60 @@ export default function Two({ adID, next, back }: StepProps) {
                                                         {description.length} / 3000
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-10">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="block text-lg font-semibold text-gray-200">
+                                                    Business Image
+                                                </label>
+                                            </div>
+
+                                            <div className="max-w-3xl">
+                                                <p className="text-gray-400 mb-4">
+                                                    Upload an image that represents your business (Max 5MB)
+                                                </p>
+
+                                                {!imagePreview ? (
+                                                    <label className={`relative block w-full cursor-pointer ${errors.image ? 'border-red-500/50' : 'border-gray-800/50 hover:border-[#00FFA3]/50'}`}>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={handleImageChange}
+                                                            className="hidden"
+                                                        />
+                                                        <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${errors.image ? 'border-red-500/50 bg-red-500/5' : 'border-gray-800/50 hover:border-[#00FFA3]/50 hover:bg-[#00FFA3]/5'}`}>
+                                                            <Upload className={`w-12 h-12 mx-auto mb-4 ${errors.image ? 'text-red-400' : 'text-gray-400'}`} />
+                                                            <p className="text-gray-300 font-medium mb-2">
+                                                                Click to upload or drag and drop
+                                                            </p>
+                                                            <p className="text-sm text-gray-500">
+                                                                PNG, JPG, GIF up to 5MB
+                                                            </p>
+                                                        </div>
+                                                    </label>
+                                                ) : (
+                                                    <div className="relative">
+                                                        <div className="border-2 border-gray-800/50 rounded-lg p-4 bg-[#0a0a0a]">
+                                                            <img
+                                                                src={imagePreview}
+                                                                alt="Preview"
+                                                                className="max-h-64 mx-auto rounded-lg"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={removeImage}
+                                                            className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 rounded-full transition-colors"
+                                                        >
+                                                            <X className="w-5 h-5 text-white" />
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {errors.image && (
+                                                    <p className="mt-2 text-sm text-red-400">{errors.image}</p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -428,7 +573,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                         </div>
                                     </div>
 
-                                    {/* Footer with Navigation */}
                                     <div className="px-8 py-6 bg-[#0a0a0a] border-t border-gray-800/50">
                                         <div className="flex items-center justify-between">
                                             <button

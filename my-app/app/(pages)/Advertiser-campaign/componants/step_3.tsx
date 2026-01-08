@@ -251,7 +251,8 @@ export default function Three({ next, back, adID }) {
                                                         <input
                                                             type="number"
                                                             placeholder="   Sol amount"
-                                                            min={0.0000001}
+                                                            min={0.0008}
+                                                            max={1}
                                                             step="any"
                                                             onChange={(e) => {
                                                                 const v = Number(e.target.value);
