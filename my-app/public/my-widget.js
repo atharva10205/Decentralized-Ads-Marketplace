@@ -9,8 +9,9 @@
 
     container.innerHTML = '<p style="color:#999;">Loading ad...</p>';
 
-    const res = await fetch( `http://localhost:3000/api/widget?id=${widgetId}`);
+    const res = await fetch( `http://localhost:3000/api/Ad?id=${widgetId}`);
     const data = await res.json();
+    console.log("DADADADATATATAT",data.html)
 
     container.innerHTML = data.html;
   }

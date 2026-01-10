@@ -39,6 +39,10 @@ export async function GET() {
         websites.map(w => [w.website_url, w.website_name])
     );
 
+    const websiteStatusMap = Object.fromEntries(
+        websites.map(w => [w.website_url , w.status])
+    )
+
     const result = websiteUrls.map(url => {
         const impressionsCount = impressionsMap[url] ?? 0;
         const clicksCount = clicksMap[url] ?? 0;
@@ -50,7 +54,8 @@ export async function GET() {
             website_url: url,
             impressions: impressionsCount,
             clicks: clicksCount,
-            ctr: Number(ctr.toFixed(2))
+            ctr: Number(ctr.toFixed(2)),
+            status : websiteStatusMap[url]
         };
     });
 

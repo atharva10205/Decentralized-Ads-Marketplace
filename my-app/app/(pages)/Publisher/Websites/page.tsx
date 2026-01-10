@@ -10,12 +10,11 @@ const Settings = () => {
     const router = useRouter();
     const [websites, setWebsites] = useState([]);
 
-    // Hardcoded fallback data
     const hardcodedData = [
-        { impressions: 45200, earnings: '1.2 SOL', status: 'Active', revenue: 85 },
-        { impressions: 38500, earnings: '0.95 SOL', status: 'Active', revenue: 78 },
-        { impressions: 28300, earnings: '0.68 SOL', status: 'Active', revenue: 72 },
-        { impressions: 15500, earnings: '0.41 SOL', status: 'Review', revenue: 45 },
+        { impressions: 45200, earnings: '1.2 SOL', status: 'ACTIVE', revenue: 85 },
+        { impressions: 38500, earnings: '0.95 SOL', status: 'ACTIVE', revenue: 78 },
+        { impressions: 28300, earnings: '0.68 SOL', status: 'ACTIVE', revenue: 72 },
+        { impressions: 15500, earnings: '0.41 SOL', status: 'ACTIVE', revenue: 45 },
     ];
 
     useEffect(() => {
@@ -28,7 +27,6 @@ const Settings = () => {
             const data = await res.json();
             console.log("Get_websites data:", data);
             
-            // Merge API data with hardcoded data
             const mergedData = data.map((site, idx) => ({
                 name: site.name,
                 url: site.website_url,
@@ -36,23 +34,23 @@ const Settings = () => {
                 impressions: site.impressions,
                 clicks: site.clicks,
                 ctr: site.ctr,
-                // Use hardcoded values for the rest
+                status: site.status === 'INACTIVE' ? 'REVIEW' : (site.status ?? 'ACTIVE'),
                 earnings: hardcodedData[idx]?.earnings || '0 SOL',
-                status: hardcodedData[idx]?.status || 'Active',
                 revenue: hardcodedData[idx]?.revenue || 0,
             }));
             
             setWebsites(mergedData);
+            console.log("mergedData",mergedData)
         } catch (error) {
             console.error("Error fetching websites:", error);
         }
     }
 
     return (
-        <div className="flex min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
+        <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
             <Sidebar activeTab={activeTab} />
 
-            <main className="flex-1 p-8 overflow-auto">
+            <main className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-6xl">
                     <div className="flex items-center justify-between mb-10">
                     
@@ -83,8 +81,8 @@ const Settings = () => {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <h3 className="text-xl font-semibold group-hover:text-[#00FFA3] transition-colors">{site.name}</h3>
-                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${site.status === 'Active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : site.status === 'InActive' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${site.status === 'Active' ? 'bg-green-400 animate-pulse' : site.status === 'InActive' ? 'bg-red-400' : 'bg-yellow-400'}`} />
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${site.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'}`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${site.status === 'ACTIVE' ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
                                                         {site.status}
                                                     </span>
                                                 </div>
@@ -94,7 +92,7 @@ const Settings = () => {
                                                 </p>
                                             </div>
                                             <div className="flex gap-2">
-                                                {site.status !== 'InActive' && (
+                                                {site.status !== 'REVIEW' && (
                                                     <>
                                                         <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors" title="Get Code">
                                                             <Code className="w-4 h-4" />
@@ -107,7 +105,7 @@ const Settings = () => {
                                                         </button>
                                                     </>
                                                 )}
-                                                {site.status === 'Review' && (
+                                                {site.status === 'REVIEW' && (
                                                     <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors" title="Refresh">
                                                         <RefreshCw className="w-4 h-4" />
                                                     </button>
@@ -118,52 +116,48 @@ const Settings = () => {
                                             </div>
                                         </div>
 
-                                        {site.status !== 'InActive' && (
-                                            <>
-                                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                                                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                        <p className="text-xs text-gray-500 mb-1">Impressions</p>
-                                                        <p className="text-lg font-semibold">{site.impressions.toLocaleString()}</p>
-                                                    </div>
-                                                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                        <p className="text-xs text-gray-500 mb-1">Clicks</p>
-                                                        <p className="text-lg font-semibold">{site.clicks.toLocaleString()}</p>
-                                                    </div>
-                                                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                        <p className="text-xs text-gray-500 mb-1">CTR</p>
-                                                        <p className="text-lg font-semibold">{site.ctr}%</p>
-                                                    </div>
-                                                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                        <p className="text-xs text-gray-500 mb-1">Earnings</p>
-                                                        <p className="text-lg font-semibold text-[#00FFA3]">{site.earnings}</p>
-                                                    </div>
-                                                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                        <p className="text-xs text-gray-500 mb-1">RPM</p>
-                                                        <p className="text-lg font-semibold">0.026 SOL</p>
-                                                    </div>
-                                                </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
+                                                <p className="text-xs text-gray-500 mb-1">Impressions</p>
+                                                <p className="text-lg font-semibold">{site.status === 'REVIEW' ? 0 : site.impressions.toLocaleString()}</p>
+                                            </div>
+                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
+                                                <p className="text-xs text-gray-500 mb-1">Clicks</p>
+                                                <p className="text-lg font-semibold">{site.status === 'REVIEW' ? 0 : site.clicks.toLocaleString()}</p>
+                                            </div>
+                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
+                                                <p className="text-xs text-gray-500 mb-1">CTR</p>
+                                                <p className="text-lg font-semibold">{site.status === 'REVIEW' ? '0%' : `${site.ctr}%`}</p>
+                                            </div>
+                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
+                                                <p className="text-xs text-gray-500 mb-1">Earnings</p>
+                                                <p className="text-lg font-semibold text-[#00FFA3]">{site.earnings}</p>
+                                            </div>
+                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
+                                                <p className="text-xs text-gray-500 mb-1">RPM</p>
+                                                <p className="text-lg font-semibold">0.026 SOL</p>
+                                            </div>
+                                        </div>
 
-                                                <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="text-sm mb-4 text-gray-500">Ad Code Integration</span>
-                                                        <button className="text-xs text-[#00FFA3] hover:text-[#00FFA3]/80 transition-colors flex items-center gap-1">
-                                                            <Copy className="w-3 h-3" />
-                                                            Copy Code
-                                                        </button>
-                                                    </div>
-                                                    <div className='flex flex-col gap-1'>
-                                                        <code className="text-xs text-gray-400 font-mono">
-                                                            &lt;div id="my-widget"&gt;&lt;/div&gt;&#10;
-                                                        </code>  
-                                                        
-                                                        <code className="text-xs text-gray-400 font-mono">
-                                                            &lt;script src="http://localhost:3000/widget.js" data-id="{site.website_url}"&gt;&lt;/script&gt;
-                                                        </code>
-                                                    </div>
+                                        <div className="bg-[#0a0a0a] p-4 rounded-xl">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm mb-4 text-gray-500">Ad Code Integration</span>
+                                                <button className="text-xs text-[#00FFA3] hover:text-[#00FFA3]/80 transition-colors flex items-center gap-1">
+                                                    <Copy className="w-3 h-3" />
+                                                    Copy Code
+                                                </button>
+                                            </div>
+                                            <div className='flex flex-col gap-1'>
+                                                <code className="text-xs text-gray-400 font-mono">
+                                                    &lt;div id="my-widget"&gt;&lt;/div&gt;&#10;
+                                                </code>  
+                                                
+                                                <code className="text-xs text-gray-400 font-mono">
+                                                    &lt;script src="http://localhost:3000/widget.js" data-id="{site.website_url}"&gt;&lt;/script&gt;
+                                                </code>
+                                            </div>
 
-                                                </div>
-                                            </>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
                             ))

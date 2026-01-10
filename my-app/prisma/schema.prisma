@@ -44,7 +44,7 @@ model new_website {
   Tags           String[]
   keywords       String[]
   wallet_address String?
-  status         String? @default("Review")
+  status         String? @default("INACTIVE")
   created_at     DateTime @default(now())
   updated_at     DateTime  @default(now()) @updatedAt
 

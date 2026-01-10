@@ -7,7 +7,7 @@ const MATCH_CONFIG = {
         keyword_match: 40,
         cost_per_click: 20
     },
-    minMatchScore: 25,
+    minMatchScore: 5,
     maxMatchscore: 100,
     Max_Ads_For_publisher: 6,
 }
@@ -33,6 +33,7 @@ function calculate_array_simmilarity(arr1, arr2) {
 }
 
 function calculateMatchScore(publisher, ad) {
+
     let score = 0;
 
     const publisherTags = publisher.Tags || [];
@@ -47,11 +48,13 @@ function calculateMatchScore(publisher, ad) {
     score = score + (Keywords_score * MATCH_CONFIG.weight.keyword_match);
     score = score + (cpc_score * MATCH_CONFIG.weight.cost_per_click);
 
+
     return score;
 }
 
 
 async function GetEligebleAd() {
+
 
     const whereCondition = {
         title: { not: null },
@@ -91,6 +94,7 @@ async function logAdImpression(ad_id, website_id, match_score) {
 
 async function selectAdsForPublisher(website_url, logImpression = false) {
 
+
     const cacheKey = `ads:publisher:${website_url}`;
     const CACHE_TTL = 300;
 
@@ -114,13 +118,16 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
 
 
     const count = MATCH_CONFIG.Max_Ads_For_publisher;
+
     const publisher = await prisma.new_website.findUnique({
         where: { website_url: website_url }
-    });
+    })
 
-    if (!publisher || publisher.status !== "active") return [];
+    if (!publisher || publisher.status == "active") return [];
 
     const ads = await GetEligebleAd();
+    
+
     if (!ads.length) return [];
 
     const adsWithScore = ads.map(ad => ({
