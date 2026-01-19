@@ -25,8 +25,7 @@ const Settings = () => {
         try {
             const res = await fetch("/api/crud/Publisher/Websites");
             const data = await res.json();
-            console.log("Get_websites data:", data);
-            
+
             const mergedData = data.map((site, idx) => ({
                 name: site.name,
                 url: site.website_url,
@@ -38,9 +37,9 @@ const Settings = () => {
                 earnings: hardcodedData[idx]?.earnings || '0 SOL',
                 revenue: hardcodedData[idx]?.revenue || 0,
             }));
-            
+
             setWebsites(mergedData);
-            console.log("mergedData",mergedData)
+            console.log("mergedData", mergedData)
         } catch (error) {
             console.error("Error fetching websites:", error);
         }
@@ -53,7 +52,7 @@ const Settings = () => {
             <main className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-6xl">
                     <div className="flex items-center justify-between mb-10">
-                    
+
                         <div>
                             <h1 className="text-3xl font-bold mb-1 bg-white bg-clip-text text-transparent">Websites</h1>
                             <p className="text-gray-500">Manage your publishing properties</p>
@@ -66,9 +65,9 @@ const Settings = () => {
                                 Add Website
                             </span>
                         </button>
-                        
+
                     </div>
-                    
+
 
                     <div className="grid gap-6">
                         {websites.length === 0 ? (
@@ -139,24 +138,27 @@ const Settings = () => {
                                             </div>
                                         </div>
 
-                                        <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-sm mb-4 text-gray-500">Ad Code Integration</span>
-                                                <button className="text-xs text-[#00FFA3] hover:text-[#00FFA3]/80 transition-colors flex items-center gap-1">
-                                                    <Copy className="w-3 h-3" />
-                                                    Copy Code
-                                                </button>
-                                            </div>
-                                            <div className='flex flex-col gap-1'>
-                                                <code className="text-xs text-gray-400 font-mono">
-                                                    &lt;div id="my-widget"&gt;&lt;/div&gt;&#10;
-                                                </code>  
-                                                
-                                                <code className="text-xs text-gray-400 font-mono">
-                                                    &lt;script src="http://localhost:3000/widget.js" data-id="{site.website_url}"&gt;&lt;/script&gt;
-                                                </code>
-                                            </div>
+                                        <div className="flex items-center   justify-between mb-2">
+                                            <span className="text-sm mb-4 text-gray-500">Ad Code Integration</span>
+                                            <button
+                                                onClick={() => {
+                                                    const code = `<div id="my-widget"></div>\n<script src="http://localhost:3000/my-widget.js" data-id="${site.website_url}"></script>`;
+                                                    navigator.clipboard.writeText(code);
+                                                }}
+                                                className="text-xs cursor-pointer text-[#00FFA3] hover:text-[#00FFA3]/80 transition-colors flex items-center gap-1"
+                                            >
+                                                <Copy className="w-3 h-3 cursor-pointer" />
+                                                Copy Code
+                                            </button>
+                                        </div>
+                                        <div className='flex rounded-xl p-5 border border-gray-800 flex-col gap-1'>
+                                            <code className="text-xs text-gray-400 font-mono">
+                                                &lt;div id="my-widget"&gt;&lt;/div&gt;&#10;
+                                            </code>
 
+                                            <code className="text-xs text-gray-400 font-mono">
+                                                &lt;script src="http://localhost:3000/my-widget.js" data-id="{site.website_url}"&gt;&lt;/script&gt;
+                                            </code>
                                         </div>
                                     </div>
                                 </div>
@@ -166,7 +168,7 @@ const Settings = () => {
                 </div>
             </main>
         </div>
-        
+
     );
 };
 

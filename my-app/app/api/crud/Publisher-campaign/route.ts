@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     );
 
 
-    const res = await prisma.new_website.create({
+    const res = await prisma.publisher.create({
         data: {
             website_name: websiteName,
             website_url: websiteURL,

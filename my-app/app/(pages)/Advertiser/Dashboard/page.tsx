@@ -7,12 +7,11 @@ import Sidebar from '../Componants/Sidebar';
 const Dashboard = () => {
   const activeTab ='Dashboard';
   const router = useRouter();
-  
 
   const stats = [
     { label: 'Active Campaigns', value: '3', icon: Target, trend: '+12%', trendUp: true },
-    { label: 'Weekly Clicks', value: '1,240', icon: MousePointerClick, trend: '+8.2%', trendUp: true },
-    { label: 'Weekly Spend', value: '0.42 SOL', icon: DollarSign, trend: '-5%', trendUp: false },
+    { label: ' Clicks', value: '1,240', icon: MousePointerClick, trend: '+8.2%', trendUp: true },
+    { label: ' Spend', value: '0.42 SOL', icon: DollarSign, trend: '-5%', trendUp: false },
   ];
 
   const campaigns = [
@@ -20,8 +19,6 @@ const Dashboard = () => {
     { name: 'NFT Collection Launch', clicks: 580, cpc: '0.00000018 SOL', status: 'Active', performance: 87 },
     { name: 'DeFi Protocol Promo', clicks: 240, cpc: '0.00000009 SOL', status: 'Paused', performance: 78 },
   ];
-
-
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">

@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "app/(pages)/Advertiser/Settings"  ],
+, "app/(pages)/Advertiser/Settings", "public/my-widget.js"  ],
   "exclude": ["node_modules"]
 }

@@ -26,17 +26,15 @@ model Ad {
   keywords        String[]
   wallet_address  String?
   cost_per_click  Decimal? @db.Decimal(18, 9)
-  Weekly_Clicks   Int?
-  Weekly_Cost     Decimal? @db.Decimal(18, 9)
+  Clicks   Int?
+  Cost     Decimal? @db.Decimal(18, 9)
   imageUrl        String?
   created_at      DateTime @default(now())
   updated_at      DateTime  @default(now()) @updatedAt
-
-  impressions Impression[]
-  clicks      Click[]
+  impression Int?
 }
 
-model new_website {
+model Publisher {
   id             String   @id @default(uuid())
   email          String?  
   website_name   String?
@@ -47,41 +45,22 @@ model new_website {
   status         String? @default("INACTIVE")
   created_at     DateTime @default(now())
   updated_at     DateTime  @default(now()) @updatedAt
-
-  impressions Impression[]
-  clicks      Click[]
 }
 
 model Impression {
   id          String   @id @default(uuid())
   ad_id       String
-  website_url  String
-  match_score Decimal? @db.Decimal(5, 2)
-  user_ip     String?
-  user_agent  String?
-  created_at  DateTime @default(now())
-  
-  ad      Ad          @relation(fields: [ad_id], references: [id])
-  website new_website @relation(fields: [website_url], references: [id])
+  publisher_id String
+  publisher_url String
+  impression Int
 
-  @@index([ad_id, created_at])
-  @@index([website_url, created_at])
-  @@index([created_at])
+  @@unique([ad_id, publisher_id,publisher_url])
 }
 
 model Click {
   id            String   @id @default(uuid())
   ad_id         String
-  website_url   String
-  impression_id String?
-  user_ip       String?
-  user_agent    String?
-  created_at    DateTime @default(now())
+  publisher_id  String
+  publisher_url String
 
-  ad      Ad          @relation(fields: [ad_id], references: [id])
-  website new_website @relation(fields: [website_url], references: [id])
-
-  @@index([ad_id, created_at])
-  @@index([website_url, created_at])
-  @@index([created_at])
 }

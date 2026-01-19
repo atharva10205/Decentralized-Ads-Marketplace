@@ -13,6 +13,7 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: Request) {
+
   const { searchParams } = new URL(request.url);
   const publisher_website_url = searchParams.get("id");
 
@@ -28,8 +29,10 @@ export async function GET(request: Request) {
 
   try {
     const ads = await selectAdsForPublisher(publisher_website_url, true);
+
+
+
     const randomAd = ads[Math.floor(Math.random() * ads.length)];
-    console.log(randomAd);
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -37,6 +40,13 @@ export async function GET(request: Request) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ad Template</title>
+      <script>
+        window.AD_DATA = {
+          adId: "${randomAd.id}",
+          publisher_url: "${publisher_website_url}",
+          targetUrl: "${randomAd.destination_url}"
+        };
+    </script>
     <style>
         * {
             margin: 0;
@@ -144,7 +154,7 @@ export async function GET(request: Request) {
 
     return new Response(JSON.stringify({ success: true, html }), {
       status: 200,
-      headers: { ...corsHeaders(), "Content-Type": "text/html" },
+      headers: { ...corsHeaders(), "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error fetching ads:", error);

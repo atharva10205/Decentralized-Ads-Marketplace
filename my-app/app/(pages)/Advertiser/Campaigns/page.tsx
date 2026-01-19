@@ -10,7 +10,7 @@ const Campaigns = () => {
       clicks: 420,
       cpc: '0.00000012 SOL',
       status: 'Active',
-      performance: 92,
+      Impressions: 92,
       budget: 1.2,
       spent: 0.74,
     },
@@ -19,7 +19,7 @@ const Campaigns = () => {
       clicks: 580,
       cpc: '0.00000018 SOL',
       status: 'Active',
-      performance: 87,
+      Impressions: 87,
       budget: 2.0,
       spent: 1.31,
     },
@@ -28,7 +28,7 @@ const Campaigns = () => {
       clicks: 240,
       cpc: '0.00000009 SOL',
       status: 'Paused',
-      performance: 78,
+      Impressions: 78,
       budget: 0.8,
       spent: 0.29,
     },
@@ -139,9 +139,9 @@ const Campaigns = () => {
                       <p className="text-lg font-semibold">{campaign.cpc}</p>
                     </div>
                     <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                      <p className="text-xs text-gray-500 mb-1">Performance</p>
+                      <p className="text-xs text-gray-500 mb-1">Impressions</p>
                       <p className="text-lg font-semibold text-[#00FFA3]">
-                        {campaign.performance}%
+                        {campaign.Impressions}
                       </p>
                     </div>
                   </div>

@@ -7,7 +7,7 @@ const MATCH_CONFIG = {
         keyword_match: 40,
         cost_per_click: 20
     },
-    minMatchScore: 5,
+    minMatchScore: 1,
     maxMatchscore: 100,
     Max_Ads_For_publisher: 6,
 }
@@ -55,19 +55,18 @@ function calculateMatchScore(publisher, ad) {
 
 async function GetEligebleAd() {
 
-
     const whereCondition = {
         title: { not: null },
-        Description: { not: null },
         destination_url: { not: null },
         cost_per_click: { not: null },
-        Weekly_Cost: { not: null },
     };
+
 
     const allIds = await prisma.ad.findMany({
         where: whereCondition,
         select: { id: true }
     });
+
 
     if (allIds.length <= 100) {
         return prisma.ad.findMany({
@@ -94,7 +93,6 @@ async function logAdImpression(ad_id, website_id, match_score) {
 
 async function selectAdsForPublisher(website_url, logImpression = false) {
 
-
     const cacheKey = `ads:publisher:${website_url}`;
     const CACHE_TTL = 300;
 
@@ -119,14 +117,19 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
 
     const count = MATCH_CONFIG.Max_Ads_For_publisher;
 
-    const publisher = await prisma.new_website.findUnique({
+
+
+    const publisher = await prisma.publisher.findUnique({
         where: { website_url: website_url }
     })
+
+
 
     if (!publisher || publisher.status == "active") return [];
 
     const ads = await GetEligebleAd();
-    
+
+
 
     if (!ads.length) return [];
 
@@ -147,6 +150,7 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
         }
     }
 
+
     const result = scoredAds.map(ad => ({
         id: ad.id,
         title: ad.title,
@@ -156,6 +160,7 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
         businessName: ad.business_name,
         matchScore: ad.matchScore.toFixed(2),
     }));
+
 
     try {
         await redis.setex(cacheKey, CACHE_TTL, result);
@@ -174,11 +179,11 @@ async function Endpoint(req, res) {
     let publisher = null;
 
     if (website_id) {
-        publisher = await prisma.new_website.findUnique({
+        publisher = await prisma.publisher.findUnique({
             where: { id: website_id },
         });
     } else if (website_url) {
-        publisher = await prisma.new_website.findUnique({
+        publisher = await prisma.publisher.findUnique({
             where: { website_url },
         });
     }
@@ -199,7 +204,7 @@ async function Endpoint(req, res) {
 
 async function previewMatches(websiteId) {
 
-    const publisher = await prisma.new_website.findUnique({
+    const publisher = await prisma.publisher.findUnique({
         where: { id: websiteId },
     });
 

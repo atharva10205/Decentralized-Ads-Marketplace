@@ -17,8 +17,8 @@ export async function POST(req: Request) {
         data: {
             wallet_address: publicKey,
             cost_per_click: new Prisma.Decimal(maximim_cost_per_bid),
-            Weekly_Clicks: Number(click),
-            Weekly_Cost: new Prisma.Decimal(maximim_cost_per_bid)
+            Clicks: Number(click),
+            Cost: new Prisma.Decimal(maximim_cost_per_bid)
         .mul(new Prisma.Decimal(click)),
         }
     })

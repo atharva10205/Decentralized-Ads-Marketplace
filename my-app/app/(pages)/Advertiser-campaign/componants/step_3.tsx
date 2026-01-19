@@ -8,7 +8,7 @@ export default function Three({ next, back, adID }) {
     const [selected, setSelected] = useState("");
     const [budget, setbudget] = useState(false)
     const [maximim_cost_per_bid, set_maximim_cost_per_bid] = useState<number>(0);
-    const [Weekly_Cost, setWeekly_Cost] = useState<WeeklyCostItem[]>([])
+    const [Cost, setCost] = useState<CostItem[]>([])
     const [publicKey, setPublicKey] = useState<string | null>("");
     const [click, setclick] = useState<number>(0);
     const [errors, setErrors] = useState<Error>({})
@@ -17,7 +17,7 @@ export default function Three({ next, back, adID }) {
         setErrors({})
     }, [selected, Customclick])
 
-    type WeeklyCostItem = {
+    type CostItem = {
         clicks: number;
         cpc: number;
         weekly: number;
@@ -89,7 +89,7 @@ export default function Three({ next, back, adID }) {
 
         const CLICKS = [200, 400, 600];
 
-        setWeekly_Cost(
+        setCost(
             CLICKS.map(clicks => ({
                 clicks,
                 cpc: parseFloat(cpc.toFixed(8)), // Round CPC to 8 decimals
@@ -315,23 +315,23 @@ export default function Three({ next, back, adID }) {
                                                                             readOnly 
                                                                             className="accent-[#00FFA3]"
                                                                         />
-                                                                        <span className="text-gray-200 font-medium">{formatSOL(Weekly_Cost[0]?.weekly || 0)} SOL</span>
+                                                                        <span className="text-gray-200 font-medium">{formatSOL(Cost[0]?.weekly || 0)} SOL</span>
                                                                     </div>
                                                                 </div>
 
                                                                 <div className="mt-3 border-t border-gray-800/50 pt-3">
                                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                                         <div>
-                                                                            <p className="text-xs mb-1 text-gray-400">Weekly Clicks</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{Weekly_Cost[0]?.clicks || 0}</p>
+                                                                            <p className="text-xs mb-1 text-gray-400"> Clicks</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{Cost[0]?.clicks || 0}</p>
                                                                         </div>
                                                                         <div>
                                                                             <p className="text-xs text-gray-400 mb-3">CPC</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Weekly_Cost[0]?.cpc || 0)} SOL</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[0]?.cpc || 0)} SOL</p>
                                                                         </div>
                                                                         <div>
-                                                                            <p className="text-xs mb-3 text-gray-400">Weekly Cost</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Weekly_Cost[0]?.weekly || 0)} SOL</p>
+                                                                            <p className="text-xs mb-3 text-gray-400"> Cost</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[0]?.weekly || 0)} SOL</p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -355,7 +355,7 @@ export default function Three({ next, back, adID }) {
                                                                             className="accent-[#00FFA3]"
                                                                         />
                                                                         <div className="flex items-center gap-2">
-                                                                            <span className="text-gray-200 font-medium">{formatSOL(Weekly_Cost[1]?.weekly || 0)} SOL</span>
+                                                                            <span className="text-gray-200 font-medium">{formatSOL(Cost[1]?.weekly || 0)} SOL</span>
                                                                             <span className="text-xs bg-[#00FFA3]/20 text-[#00FFA3] px-2 py-0.5 rounded border border-[#00FFA3]/30">
                                                                                 Recommended
                                                                             </span>
@@ -366,16 +366,16 @@ export default function Three({ next, back, adID }) {
                                                                 <div className="mt-3 border-t border-gray-800/50 pt-3">
                                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                                         <div>
-                                                                            <p className="text-xs mb-1 text-gray-400">Weekly Clicks</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{Weekly_Cost[1]?.clicks || 0}</p>
+                                                                            <p className="text-xs mb-1 text-gray-400">Clicks</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{Cost[1]?.clicks || 0}</p>
                                                                         </div>
                                                                         <div>
                                                                             <p className="text-xs text-gray-400 mb-3"> CPC</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Weekly_Cost[1]?.cpc || 0)} SOL</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[1]?.cpc || 0)} SOL</p>
                                                                         </div>
                                                                         <div>
-                                                                            <p className="text-xs mb-3 text-gray-400">Weekly Cost</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Weekly_Cost[1]?.weekly || 0)} SOL</p>
+                                                                            <p className="text-xs mb-3 text-gray-400"> Cost</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[1]?.weekly || 0)} SOL</p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -398,23 +398,23 @@ export default function Three({ next, back, adID }) {
                                                                             readOnly 
                                                                             className="accent-[#00FFA3]"
                                                                         />
-                                                                        <span className="text-gray-200 font-medium">{formatSOL(Weekly_Cost[2]?.weekly || 0)} SOL</span>
+                                                                        <span className="text-gray-200 font-medium">{formatSOL(Cost[2]?.weekly || 0)} SOL</span>
                                                                     </div>
                                                                 </div>
 
                                                                 <div className="mt-3 border-t border-gray-800/50 pt-3">
                                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                                         <div>
-                                                                            <p className="text-xs mb-1 text-gray-400">Weekly Clicks</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{Weekly_Cost[2]?.clicks || 0}</p>
+                                                                            <p className="text-xs mb-1 text-gray-400"> Clicks</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{Cost[2]?.clicks || 0}</p>
                                                                         </div>
                                                                         <div>
                                                                             <p className="text-xs text-gray-400 mb-4"> CPC</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Weekly_Cost[2]?.cpc || 0)} SOL</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[2]?.cpc || 0)} SOL</p>
                                                                         </div>
                                                                         <div>
-                                                                            <p className="text-xs mb-4 text-gray-400">Weekly Cost</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Weekly_Cost[2]?.weekly || 0)} SOL</p>
+                                                                            <p className="text-xs mb-4 text-gray-400"> Cost</p>
+                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[2]?.weekly || 0)} SOL</p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -465,7 +465,7 @@ export default function Three({ next, back, adID }) {
                                                                 <div className="border-t border-gray-800/50 pt-3">
                                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                                         <div>
-                                                                            <p className="text-xs mb-1 text-gray-400">Weekly Clicks</p>
+                                                                            <p className="text-xs mb-1 text-gray-400"> Clicks</p>
                                                                             <p className="font-medium text-gray-300 text-sm">{Customclick}</p>
                                                                         </div>
                                                                         <div>
@@ -473,7 +473,7 @@ export default function Three({ next, back, adID }) {
                                                                             <p className="font-medium text-gray-300 text-sm">{formatSOL(Number(maximim_cost_per_bid))} SOL</p>
                                                                         </div>
                                                                         <div>
-                                                                            <p className="text-xs mb-3 text-gray-400">Weekly Cost</p>
+                                                                            <p className="text-xs mb-3 text-gray-400"> Cost</p>
                                                                             <p className="font-medium text-gray-300 text-sm">{formatSOL(Number(Customclick) * Number(maximim_cost_per_bid))} SOL</p>
                                                                         </div>
                                                                     </div>
