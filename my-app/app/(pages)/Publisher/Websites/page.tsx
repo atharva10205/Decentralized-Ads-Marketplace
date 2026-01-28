@@ -5,45 +5,40 @@ import Sidebar from '../sidebar/sidebar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const Settings = () => {
-    const activeTab = 'Settings';
+
+const Websites = () => {
+    const activeTab = 'Websites';
     const router = useRouter();
     const [websites, setWebsites] = useState([]);
 
-    const hardcodedData = [
-        { impressions: 45200, earnings: '1.2 SOL', status: 'ACTIVE', revenue: 85 },
-        { impressions: 38500, earnings: '0.95 SOL', status: 'ACTIVE', revenue: 78 },
-        { impressions: 28300, earnings: '0.68 SOL', status: 'ACTIVE', revenue: 72 },
-        { impressions: 15500, earnings: '0.41 SOL', status: 'ACTIVE', revenue: 45 },
-    ];
-
     useEffect(() => {
+        const Get_websites = async () => {
+            try {
+                const res = await fetch("/api/crud/Publisher/Websites");
+                const data = await res.json();
+
+                const websitesWithMetrics = data.map(site => ({
+                    ...site,
+                    ctr: site.impressions > 0
+                        ? ((site.clicks / site.impressions) * 100).toFixed(2)
+                        : '0.00',
+                    formattedEarnings: site.earnings 
+                        ? `${Number(site.earnings).toFixed(4)} SOL`
+                        : '$0.0000',
+                    rpm: site.impressions > 0
+                        ? ((site.earnings / site.impressions) * 1000).toFixed(4)
+                        : '0.0000'
+                }));
+
+                setWebsites(websitesWithMetrics);
+                console.log("mergedData", websitesWithMetrics);
+            } catch (error) {
+                console.error("Error fetching websites:", error);
+            }
+        };
+
         Get_websites();
-    }, [])
-
-    const Get_websites = async () => {
-        try {
-            const res = await fetch("/api/crud/Publisher/Websites");
-            const data = await res.json();
-
-            const mergedData = data.map((site, idx) => ({
-                name: site.name,
-                url: site.website_url,
-                website_url: site.website_url,
-                impressions: site.impressions,
-                clicks: site.clicks,
-                ctr: site.ctr,
-                status: site.status === 'INACTIVE' ? 'REVIEW' : (site.status ?? 'ACTIVE'),
-                earnings: hardcodedData[idx]?.earnings || '0 SOL',
-                revenue: hardcodedData[idx]?.revenue || 0,
-            }));
-
-            setWebsites(mergedData);
-            console.log("mergedData", mergedData)
-        } catch (error) {
-            console.error("Error fetching websites:", error);
-        }
-    }
+    }, []);
 
     return (
         <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
@@ -52,7 +47,6 @@ const Settings = () => {
             <main className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-6xl">
                     <div className="flex items-center justify-between mb-10">
-
                         <div>
                             <h1 className="text-3xl font-bold mb-1 bg-white bg-clip-text text-transparent">Websites</h1>
                             <p className="text-gray-500">Manage your publishing properties</p>
@@ -65,21 +59,19 @@ const Settings = () => {
                                 Add Website
                             </span>
                         </button>
-
                     </div>
-
 
                     <div className="grid gap-6">
                         {websites.length === 0 ? (
-                            <div className="text-center text-gray-500 py-10">Loading websites...</div>
+                            <div className="text-center text-gray-500 py-10">No websites Found</div>
                         ) : (
                             websites.map((site, idx) => (
-                                <div key={site.website_url} className="group bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl overflow-hidden hover:border-gray-700 hover:shadow-xl hover:shadow-[#00FFA3]/5 transition-all duration-300">
+                                <div key={site.website_name} className="group bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl overflow-hidden hover:border-gray-700 hover:shadow-xl hover:shadow-[#00FFA3]/5 transition-all duration-300">
                                     <div className="p-6">
                                         <div className="flex items-start justify-between mb-6">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
-                                                    <h3 className="text-xl font-semibold group-hover:text-[#00FFA3] transition-colors">{site.name}</h3>
+                                                    <h3 className="text-xl font-semibold group-hover:text-[#00FFA3] transition-colors">{site.website_name}</h3>
                                                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${site.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'}`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full mr-2 ${site.status === 'ACTIVE' ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
                                                         {site.status}
@@ -87,7 +79,7 @@ const Settings = () => {
                                                 </div>
                                                 <p className="text-sm text-gray-500 flex items-center gap-2">
                                                     <Link className="w-4 h-4" />
-                                                    {site.url}
+                                                    {site.publisher_url}
                                                 </p>
                                             </div>
                                             <div className="flex gap-2">
@@ -130,19 +122,23 @@ const Settings = () => {
                                             </div>
                                             <div className="bg-[#0a0a0a] p-4 rounded-xl">
                                                 <p className="text-xs text-gray-500 mb-1">Earnings</p>
-                                                <p className="text-lg font-semibold text-[#00FFA3]">{site.earnings}</p>
+                                                <p className="text-lg font-semibold text-[#00FFA3]">
+                                                    {site.status === 'REVIEW' ? '0.0000 SOL' : site.formattedEarnings }
+                                                </p>
                                             </div>
                                             <div className="bg-[#0a0a0a] p-4 rounded-xl">
                                                 <p className="text-xs text-gray-500 mb-1">RPM</p>
-                                                <p className="text-lg font-semibold">0.026 SOL</p>
+                                                <p className="text-lg font-semibold">
+                                                    {site.status === 'REVIEW' ? '0.0000 SOL' : `${site.rpm} SOL`}
+                                                </p>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center   justify-between mb-2">
+                                        <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm mb-4 text-gray-500">Ad Code Integration</span>
                                             <button
                                                 onClick={() => {
-                                                    const code = `<div id="my-widget"></div>\n<script src="http://localhost:3000/my-widget.js" data-id="${site.website_url}"></script>`;
+                                                    const code = `<div id="my-widget"></div>\n<script src="http://localhost:3000/my-widget.js" data-id="${site.publisher_url}"></script>`;
                                                     navigator.clipboard.writeText(code);
                                                 }}
                                                 className="text-xs cursor-pointer text-[#00FFA3] hover:text-[#00FFA3]/80 transition-colors flex items-center gap-1"
@@ -155,9 +151,8 @@ const Settings = () => {
                                             <code className="text-xs text-gray-400 font-mono">
                                                 &lt;div id="my-widget"&gt;&lt;/div&gt;&#10;
                                             </code>
-
                                             <code className="text-xs text-gray-400 font-mono">
-                                                &lt;script src="http://localhost:3000/my-widget.js" data-id="{site.website_url}"&gt;&lt;/script&gt;
+                                                &lt;script src="http://localhost:3000/my-widget.js" data-id="{site.publisher_url}"&gt;&lt;/script&gt;
                                             </code>
                                         </div>
                                     </div>
@@ -168,8 +163,7 @@ const Settings = () => {
                 </div>
             </main>
         </div>
-
     );
 };
 
-export default Settings;
+export default Websites;

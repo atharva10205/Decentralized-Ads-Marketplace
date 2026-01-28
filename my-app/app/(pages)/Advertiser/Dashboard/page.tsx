@@ -9,9 +9,9 @@ const Dashboard = () => {
   const router = useRouter();
 
   const stats = [
-    { label: 'Active Campaigns', value: '3', icon: Target, trend: '+12%', trendUp: true },
-    { label: ' Clicks', value: '1,240', icon: MousePointerClick, trend: '+8.2%', trendUp: true },
-    { label: ' Spend', value: '0.42 SOL', icon: DollarSign, trend: '-5%', trendUp: false },
+    { label: 'Active Campaigns', value: '3', icon: Target},
+    { label: ' Clicks', value: '1,240', icon: MousePointerClick},
+    { label: ' Spend', value: '0.42 SOL', icon: DollarSign},
   ];
 
   const campaigns = [
@@ -46,7 +46,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {stats.map((stat, idx) => {
             const Icon = stat.icon;
@@ -67,10 +66,7 @@ const Dashboard = () => {
                     <div className="p-3 rounded-xl bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10 group-hover:scale-110 transition-transform duration-300">
                       <Icon className="w-5 h-5 text-[#00FFA3]" />
                     </div>
-                    <span className={`text-sm font-semibold flex items-center gap-1 ${stat.trendUp ? 'text-green-400' : 'text-red-400'}`}>
-                      <TrendingUp className={`w-4 h-4 ${!stat.trendUp && 'rotate-180'}`} />
-                      {stat.trend}
-                    </span>
+                   
                   </div>
                   <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
                   <p className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">

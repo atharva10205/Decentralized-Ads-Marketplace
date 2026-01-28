@@ -6,173 +6,126 @@ export async function GET() {
     try {
         const session = await auth();
 
-        const publisher_id = await prisma.publisher.findMany({
-            where: {
-                email: session?.user?.email
-            }
-        })
-        const publisher_Id_website_url = publisher_id.map(p => ({ publisher_url: p.website_url, publisher_id: p.id }));
-
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        console.log("publisher_Id_website_url", publisher_Id_website_url)
+        const [publishers] = await Promise.all([
 
+            prisma.publisher.findMany({
+                where: { email: session.user.email },
+                select: {
+                    id: true,
+                    website_url: true,
+                    website_name: true,
+                    status: true
+                }
+            }),
 
+        ]);
 
-        const impression = await prisma.impression.groupBy({
-            by: ['publisher_id', 'publisher_url'],
-            _sum: {
-                impression: true
-            },
-            where: {
-                OR: publisher_Id_website_url.map(p => ({
-                    publisher_id: p.publisher_id,
-                    publisher_url: p.publisher_url
-                }))
-            }
-        });
-        console.log("impression", impression);
-
-
-        const clickCounts1 = await prisma.click.groupBy({
-            by: ['publisher_id', 'publisher_url'],
-            _count: {
-                _all: true
-            },
-            where: {
-                OR: publisher_Id_website_url.map(p => ({
-                    publisher_id: p.publisher_id,
-                    publisher_url: p.publisher_url
-                }))
-            }
-        });
-
-        console.log("clickCounts1", clickCounts1);
-
-        const map = new Map<string, any>();
-
-        // add impressions
-        for (const i of impression) {
-            const key = `${i.publisher_id}|${i.publisher_url}`;
-            map.set(key, {
-                publisher_id: i.publisher_id,
-                publisher_url: i.publisher_url,
-                impressions: i._sum.impression ?? 0,
-                clicks: 0
-            });
-        }
-
-        // add clicks
-        for (const c of clickCounts1) {
-            const key = `${c.publisher_id}|${c.publisher_url}`;
-            const prev = map.get(key) || {
-                publisher_id: c.publisher_id,
-                publisher_url: c.publisher_url,
-                impressions: 0,
-                clicks: 0
-            };
-
-            prev.clicks = c._count._all;
-            map.set(key, prev);
-        }
-
-        const merged = Array.from(map.values());
-
-        console.log("merged", merged);
-
-
-
-
-
-        const websites = await prisma.publisher.findMany({
-            where: { email: session.user.email },
-        });
-        if (websites.length === 0) {
+        if (publishers.length === 0) {
             return NextResponse.json([]);
         }
 
+        const publisherIds = publishers.map(p => p.id);
 
+        const [impressionData, clickData] = await Promise.all([
+            prisma.impression.groupBy({
+                by: ['publisher_id', 'publisher_url'],
+                _sum: { impression: true },
+                where: {
+                    publisher_id: { in: publisherIds }
+                }
+            }),
+            prisma.click.groupBy({
+                by: ['publisher_id', 'publisher_url'],
+                _count: { _all: true },
+                where: {
+                    publisher_id: { in: publisherIds }
+                }
+            })
+        ]);
 
-        const websiteUrls = websites.map(w => w.website_url).filter(Boolean) as string[];
+        const allClicks = await prisma.click.findMany({
+            where: {
+                publisher_id: { in: publisherIds }
+            },
+            select: {
+                ad_id: true,
+                publisher_id: true,
+                publisher_url: true
+            }
+        })
+        const adIds = [...new Set(allClicks.map(c => c.ad_id))];
 
-
-        if (websiteUrls.length === 0) {
-            return NextResponse.json([]);
-        }
-
-
-        const websiteNameMap = Object.fromEntries(
-            websites.map(w => [w.website_url, w.website_name])
-        );
-
-        const websiteStatusMap = Object.fromEntries(
-            websites.map(w => [w.website_url, w.status])
-        );
-
-        const impressions = await prisma.impression.findMany({
-            where: { publisher_id: publisher_id.id }
+        const ads = await prisma.ad.findMany({
+            where: {
+                id: { in: adIds }
+            },
+            select: {
+                id: true,
+                cost_per_click: true
+            }
         });
 
-        const impression_map = impressions.map(w => ({
-            publisher_url: w.publisher_url,
-            impression: w.impression,
-        }));
+        const cpcMap = new Map(
+            ads.map(ad => [ad.id, Number(ad.cost_per_click ?? 0)])
+        );
 
-        // console.log("impression", impression_map)
-        // console.log("impression_map", impression_map)
+        const earningsMap = new Map<string, number>();
 
-
-        const ad_id = await prisma.click.findMany({
-            where: { publisher_id: publisher_id.id }
+        allClicks.forEach(click => {
+            const key = `${click.publisher_id}|${click.publisher_url}`;
+            const cpc = cpcMap.get(click.ad_id) ?? 0;
+            const currentEarnings = earningsMap.get(key) ?? 0;
+            earningsMap.set(key, currentEarnings + cpc);
         })
 
-        const ad_id_map = ad_id.map(w => w.ad_id)
+        const statusMap = new Map(
+            publishers.map(p => [
+                `${p.id}|${p.website_url}`,
+                p.status ?? "UNKNOWN"
+            ])
+        );
 
+        const impressionMap = new Map(
+            impressionData.map(i => [
+                `${i.publisher_id}|${i.publisher_url}`,
+                i._sum.impression ?? 0
+            ])
+        );
 
+        const clickMap = new Map(
+            clickData.map(c => [
+                `${c.publisher_id}|${c.publisher_url}`,
+                c._count._all
+            ])
+        );
 
-        const clickCounts = await prisma.click.groupBy({
-            by: ['ad_id'],
-            where: {
-                publisher_id: publisher_id.id,
-                ad_id: { in: ad_id_map }
-            },
-            _count: {
-                ad_id: true
-            }
-        });
-
-        // console.log("Click counts:", clickCounts);
-
-        const result = websiteUrls.map(url => {
-
-            const impressionsCount = 0;
-
-            const clicksCount = 0;
-
-            const ctr = impressionsCount === 0 ? 0 : (clicksCount / impressionsCount) * 100;
-
+        const merged = publishers.map(p => {
+            const key = `${p.id}|${p.website_url}`;
             return {
-                name: websiteNameMap[url],
-                website_url: url,
-                impressions: impressionsCount,
-                clicks: clicksCount,
-                ctr: Number(ctr.toFixed(2)),
-                status: websiteStatusMap[url]
+                publisher_id: p.id,
+                publisher_url: p.website_url,
+                website_name: p.website_name,
+                impressions: impressionMap.get(key) ?? 0,
+                clicks: clickMap.get(key) ?? 0,
+                earnings: earningsMap.get(key) ?? 0,
+                status: statusMap.get(key) ?? "UNKNOWN"
             };
         });
 
-        // console.log("result", result)
 
-
-
-        return NextResponse.json(result);
+        return NextResponse.json(merged);
 
     } catch (error) {
         console.error("Error in GET /api/publisher/stats:", error);
         return NextResponse.json(
-            { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
+            {
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : "Unknown error"
+            },
             { status: 500 }
         );
     }

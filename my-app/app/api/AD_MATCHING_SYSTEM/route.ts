@@ -36,11 +36,8 @@ function calculateMatchScore(publisher, ad) {
 
     let score = 0;
 
-    const publisherTags = publisher.Tags || [];
-    const publisherKeywords = publisher.keywords || [];
-
-    const Tag_score = calculate_array_simmilarity(publisherTags, ad.Tags || []);
-    const Keywords_score = calculate_array_simmilarity(publisherKeywords, ad.keywords || []);
+    const Tag_score = calculate_array_simmilarity(publisher.Tags || [], ad.Tags || []);
+    const Keywords_score = calculate_array_simmilarity(publisher.keywords || [], ad.keywords || []);
 
     const cpc_score = normalise_cpc(Number(ad.cost_per_click || 0));
 
@@ -117,13 +114,9 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
 
     const count = MATCH_CONFIG.Max_Ads_For_publisher;
 
-
-
     const publisher = await prisma.publisher.findUnique({
         where: { website_url: website_url }
     })
-
-
 
     if (!publisher || publisher.status == "active") return [];
 
@@ -131,18 +124,34 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
 
 
 
-    if (!ads.length) return [];
-
     const adsWithScore = ads.map(ad => ({
         ...ad,
         matchScore: calculateMatchScore(publisher, ad),
     }));
 
+
     const filteredAds = adsWithScore.filter(ad => ad.matchScore >= MATCH_CONFIG.minMatchScore);
     const sortedAds = filteredAds.sort((a, b) => b.matchScore - a.matchScore);
     const scoredAds = sortedAds.slice(0, count);
 
-    if (scoredAds.length === 0) return [];
+
+    if (scoredAds.length === 0) {
+        if (publisher.status !== "INACTIVE") {
+            await prisma.publisher.update({
+                where: { id: publisher.id },
+                data: { status: "INACTIVE" }
+            });
+        }
+        return [];
+    }
+
+    if (publisher.status !== "ACTIVE") {
+        await prisma.publisher.update({
+            where: { id: publisher.id },
+            data: { status: "ACTIVE" }
+        });
+    }
+
 
     if (logImpression) {
         for (const ad of scoredAds) {

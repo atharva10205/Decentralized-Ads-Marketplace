@@ -25,8 +25,6 @@ const Settings = () => {
 
       if (res.ok) {
         setCurrentRole(newRole);
-        // Optionally redirect to the appropriate dashboard
-        // window.location.href = newRole === 'advertiser' ? '/Advertiser-Dashboard' : '/Publisher-Dashboard';
       }
     } catch (error) {
       console.error('Failed to switch role:', error);
@@ -46,7 +44,6 @@ const Settings = () => {
         </div>
 
         <div className="grid gap-6">
-          {/* Role Switcher Section */}
           <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl overflow-hidden">
             <div className="p-6 border-b border-gray-800/50 flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10">
@@ -60,7 +57,6 @@ const Settings = () => {
 
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Advertiser Option */}
                 <button
                   onClick={() => handleRoleSwitch('advertiser')}
                   disabled={isSwitching}
@@ -98,7 +94,6 @@ const Settings = () => {
                   </div>
                 </button>
 
-                {/* Publisher Option */}
                 <button
                   onClick={() => handleRoleSwitch('publisher')}
                   disabled={isSwitching}
@@ -152,7 +147,6 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Profile Settings Section */}
           <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl overflow-hidden">
             <div className="p-6 border-b border-gray-800/50 flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10">

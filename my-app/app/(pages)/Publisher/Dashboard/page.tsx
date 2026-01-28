@@ -3,26 +3,93 @@
 import { Globe, TrendingUp, Eye, DollarSign, Plus } from 'lucide-react';
 import Sidebar from '../sidebar/sidebar';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useSession } from "next-auth/react";
+
+
 
 const Dashboard = () => {
     const activeTab = 'Dashboard';
     const router = useRouter();
 
+    const { data: session, status } = useSession();
+
+
+    type DashboardData = {
+        active_websites: number;
+        totalImpressions: number;
+        totalEarnings: number;
+    };
+
+    const [Data, setData] = useState<DashboardData | null>(null);
+
+    type Website = {
+        name: string;
+        website_name: string;
+        publisher_url: string;
+        impressions: number;
+        clicks: number;
+        ctr: number;
+        earnings: number;
+        revenue: number;
+    };
+
+    const [websites, setWebsites] = useState<Website[]>([])
+
+
+    useEffect(() => {
+
+        if (status === "authenticated" && session?.user?.role === "publisher") {
+            const fetchData = async () => {
+                const res = await fetch("/api/crud/Publisher/Dashboard");
+                setData(await res.json());
+            }
+
+            const fetch_websites = async () => {
+                const res = await fetch("/api/crud/Publisher/Websites");
+                setWebsites(await res.json());
+            }
+            fetchData();
+            fetch_websites();
+
+        }else{
+            router.push("/Advertiser/Dashboard")
+        }
+
+    }, [status])
+
+
+
+    if (!Data) {
+        return (
+            <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
+                <Sidebar activeTab={activeTab} />
+                <main className="flex-1 p-8 overflow-auto">
+                    <div className="max-w-6xl">
+                        <div className="animate-pulse space-y-8">
+                            <div className="h-8 bg-gray-800 rounded w-48"></div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="h-32 bg-gray-800 rounded-2xl"></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
     const stats = [
-        { label: 'Active Websites', value: '5', icon: Globe, trend: '+2', trendUp: true },
-        { label: 'Total Impressions', value: '127.5K', icon: Eye, trend: '+18.3%', trendUp: true },
-        { label: 'Total Earnings', value: '3.24 SOL', icon: DollarSign, trend: '+12.7%', trendUp: true },
+        { label: 'Active Websites', value: Data.active_websites, icon: Globe },
+        { label: 'Total Impressions', value: Data.totalImpressions, icon: Eye, },
+        { label: 'Total Earnings', value: `${Data.totalEarnings} SOL`, icon: DollarSign },
     ];
 
-    const websites = [
-        { name: 'TechBlog.io', url: 'techblog.io', impressions: 45200, clicks: 1240, ctr: 2.74, earnings: '1.2 SOL', status: 'Active', revenue: 85 },
-        { name: 'CryptoNews Daily', url: 'cryptonews.daily', impressions: 38500, clicks: 980, ctr: 2.54, earnings: '0.95 SOL', status: 'Active', revenue: 78 },
-        { name: 'DevTutorials', url: 'devtutorials.com', impressions: 28300, clicks: 720, ctr: 2.54, earnings: '0.68 SOL', status: 'Active', revenue: 72 },
-        { name: 'StartupHub', url: 'startuphub.io', impressions: 15500, clicks: 410, ctr: 2.65, earnings: '0.41 SOL', status: 'Review', revenue: 45 },
-    ];
+
 
     return (
-        <div className="flex min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
+        <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
             <Sidebar activeTab={activeTab} />
 
             <main className="flex-1 p-8 overflow-auto">
@@ -32,9 +99,9 @@ const Dashboard = () => {
                             <h1 className="text-3xl font-bold mb-1 bg-white bg-clip-text text-transparent">Dashboard</h1>
                             <p className="text-gray-500">Track your publishing performance and earnings</p>
                         </div>
-                        <button 
-                        onClick={()=>{router.push("/Publisher-campaign")}}
-                        className="group cursor-pointer relative px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black overflow-hidden hover:shadow-2xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-1000">
+                        <button
+                            onClick={() => { router.push("/Publisher-campaign") }}
+                            className="group cursor-pointer relative px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black overflow-hidden hover:shadow-2xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-1000">
                             <span className="relative z-10 flex items-center gap-2">
                                 <Plus className="w-5 h-5" />
                                 Add Website
@@ -54,52 +121,30 @@ const Dashboard = () => {
                                             <div className="p-3 rounded-xl bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10 group-hover:scale-110 transition-transform duration-300">
                                                 <Icon className="w-5 h-5 text-[#00FFA3]" />
                                             </div>
-                                            <span className={`text-sm font-semibold flex items-center gap-1 ${stat.trendUp ? 'text-green-400' : 'text-red-400'}`}>
-                                                <TrendingUp className={`w-4 h-4 ${!stat.trendUp && 'rotate-180'}`} />
-                                                {stat.trend}
-                                            </span>
+
                                         </div>
                                         <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
-                                        <p className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">{stat.value}</p>
+                                        <p className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">{stat.value} </p>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-6 rounded-2xl">
-                            <h2 className="text-lg font-semibold mb-1">Quick Stats</h2>
-                            <p className="text-sm text-gray-500 mb-6">Last 7 days performance</p>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-400">Page Views</span>
-                                    <span className="text-xl font-semibold">127,543</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-400">Unique Visitors</span>
-                                    <span className="text-xl font-semibold">45,230</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-400">Ad Clicks</span>
-                                    <span className="text-xl font-semibold">3,350</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-400">Avg. Session</span>
-                                    <span className="text-xl font-semibold">3m 42s</span>
-                                </div>
-                            </div>
-                        </div>
+                    <div className=" mb-6">
+
 
                         <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-6 rounded-2xl">
                             <h2 className="text-lg font-semibold mb-1">Earnings Breakdown</h2>
                             <p className="text-sm text-gray-500 mb-6">Revenue by website</p>
                             <div className="space-y-4">
-                                {websites.slice(0, 4).map((site) => (
-                                    <div key={site.name}>
+                                {websites.map((site, index) => (
+                                    <div key={`earnings-${site.name}-${index}`}>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm text-gray-400">{site.name}</span>
-                                            <span className="text-sm font-semibold text-[#00FFA3]">{site.earnings}</span>
+                                            <span className="text-sm text-gray-400">{site.website_name}</span>
+                                            <span className="text-sm font-semibold text-[#00FFA3]">
+                                                {site.earnings.toFixed(4)} SOL
+                                            </span>
                                         </div>
                                         <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                                             <div className="h-full bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full" style={{ width: `${site.revenue}%` }} />
@@ -116,7 +161,6 @@ const Dashboard = () => {
                                 <h2 className="text-lg font-semibold mb-1">Top Performing Websites</h2>
                                 <p className="text-sm text-gray-500">Your best earning properties</p>
                             </div>
-                            <button className="text-sm text-[#00FFA3] hover:text-[#00FFA3]/80 transition-colors">View All →</button>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -130,18 +174,24 @@ const Dashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {websites.slice(0, 3).map((site) => (
-                                        <tr key={site.name} className="border-t border-gray-800/50 hover:bg-[#161616]/50 transition-colors duration-200 cursor-pointer group">
+                                    {websites.map((site, index) => (
+                                        <tr key={`website-${site.name}-${index}`} className="border-t border-gray-800/50 hover:bg-[#161616]/50 transition-colors duration-200 cursor-pointer group">
                                             <td className="p-4">
                                                 <div>
-                                                    <p className="font-medium group-hover:text-[#00FFA3] transition-colors">{site.name}</p>
-                                                    <p className="text-sm text-gray-500">{site.url}</p>
+                                                    <p className="font-medium group-hover:text-[#00FFA3] transition-colors">{site.website_name}</p>
+                                                    <p className="text-sm text-gray-500">{site.publisher_url}</p>
                                                 </div>
                                             </td>
                                             <td className="p-4 text-gray-400">{site.impressions.toLocaleString()}</td>
                                             <td className="p-4 text-gray-400">{site.clicks.toLocaleString()}</td>
-                                            <td className="p-4 text-gray-400">{site.ctr}%</td>
-                                            <td className="p-4 font-semibold text-[#00FFA3]">{site.earnings}</td>
+                                            <td className="p-4 text-gray-400">
+                                                {site.impressions > 0
+                                                    ? ((site.clicks / site.impressions) * 100).toFixed(2)
+                                                    : '0.00'}%
+                                            </td>
+                                            <td className="p-4 font-semibold text-[#00FFA3]">
+                                                {site.earnings.toFixed(4)} SOL
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -155,3 +205,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+
