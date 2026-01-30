@@ -1,6 +1,6 @@
 'use client'
 
-import { Globe, TrendingUp, Eye, DollarSign, Plus } from 'lucide-react';
+import { Globe, Eye, DollarSign, Plus } from 'lucide-react';
 import Sidebar from '../sidebar/sidebar';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -10,16 +10,25 @@ import { useSession } from "next-auth/react";
 
 const Dashboard = () => {
     const activeTab = 'Dashboard';
+
     const router = useRouter();
 
     const { data: session, status } = useSession();
+
+    if (session) {
+        console.log("sesessionssion", session)
+    }
+    if (status) {
+        console.log("status", status)
+    }
+
 
 
     type DashboardData = {
         active_websites: number;
         totalImpressions: number;
         totalEarnings: number;
-    };
+    }; 
 
     const [Data, setData] = useState<DashboardData | null>(null);
 
@@ -39,24 +48,24 @@ const Dashboard = () => {
 
     useEffect(() => {
 
-        if (status === "authenticated" && session?.user?.role === "publisher") {
-            const fetchData = async () => {
-                const res = await fetch("/api/crud/Publisher/Dashboard");
-                setData(await res.json());
-            }
-
-            const fetch_websites = async () => {
-                const res = await fetch("/api/crud/Publisher/Websites");
-                setWebsites(await res.json());
-            }
-            fetchData();
-            fetch_websites();
-
-        }else{
-            router.push("/Advertiser/Dashboard")
+        // if (status === "authenticated" && session?.user?.role === "publisher") {
+        const fetchData = async () => {
+            const res = await fetch("/api/crud/Publisher/Dashboard");
+            setData(await res.json());
         }
 
-    }, [status])
+        const fetch_websites = async () => {
+            const res = await fetch("/api/crud/Publisher/Websites");
+            setWebsites(await res.json());
+        }
+        fetchData();
+        fetch_websites();
+
+        // }else{
+        //     router.push("/Advertiser/Dashboard")
+        // }
+
+    }, [])
 
 
 
