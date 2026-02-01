@@ -5,71 +5,70 @@ import Sidebar from '../sidebar/sidebar';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession } from "next-auth/react";
+import { useQuery } from '@tanstack/react-query';
 
+
+type DashboardData = {
+    active_websites: number;
+    totalImpressions: number;
+    totalEarnings: number;
+};
+
+type Website = {
+    name: string;
+    website_name: string;
+    publisher_url: string;
+    impressions: number;
+    clicks: number;
+    ctr: number;
+    earnings: number;
+    revenue: number;
+};
+
+const fetchDashboardData = async (): Promise<DashboardData> => {
+    const res = await fetch("/api/crud/Publisher/Dashboard");
+    if (!res.ok) throw new Error('Failed to fetch dashboard data');
+    return res.json();
+};
+
+const fetchWebsites = async (): Promise<Website[]> => {
+    const res = await fetch("/api/crud/Publisher/Websites");
+    if (!res.ok) throw new Error('Failed to fetch websites');
+    return res.json();
+};
 
 
 const Dashboard = () => {
     const activeTab = 'Dashboard';
-
     const router = useRouter();
+    const { status } = useSession();
 
-    const { data: session, status } = useSession();
+    const dashboardQuery = useQuery({
+        queryKey: ['dashboard'],
+        queryFn: fetchDashboardData,
+        enabled: status === 'authenticated',
+    });
 
-    if (session) {
-        console.log("sesessionssion", session)
-    }
-    if (status) {
-        console.log("status", status)
-    }
+    const dashboardData = dashboardQuery.data;
+    const isDashboardLoading = dashboardQuery.isLoading;
+    const dashboardError = dashboardQuery.error;
 
+    const websitesQuery = useQuery({
+        queryKey: ['websites'],
+        queryFn: fetchWebsites,
+        enabled: status === 'authenticated',
+    });
 
-
-    type DashboardData = {
-        active_websites: number;
-        totalImpressions: number;
-        totalEarnings: number;
-    }; 
-
-    const [Data, setData] = useState<DashboardData | null>(null);
-
-    type Website = {
-        name: string;
-        website_name: string;
-        publisher_url: string;
-        impressions: number;
-        clicks: number;
-        ctr: number;
-        earnings: number;
-        revenue: number;
-    };
-
-    const [websites, setWebsites] = useState<Website[]>([])
+    const websites = websitesQuery.data ?? [];
+    const isWebsitesLoading = websitesQuery.isLoading;
+    const websitesError = websitesQuery.error;
 
 
-    useEffect(() => {
-
-        // if (status === "authenticated" && session?.user?.role === "publisher") {
-        const fetchData = async () => {
-            const res = await fetch("/api/crud/Publisher/Dashboard");
-            setData(await res.json());
-        }
-
-        const fetch_websites = async () => {
-            const res = await fetch("/api/crud/Publisher/Websites");
-            setWebsites(await res.json());
-        }
-        fetchData();
-        fetch_websites();
-
-        // }else{
-        //     router.push("/Advertiser/Dashboard")
-        // }
-
-    }, [])
+    const isLoading = isDashboardLoading || isWebsitesLoading;
 
 
 
-    if (!Data) {
+    if (isLoading) {
         return (
             <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
                 <Sidebar activeTab={activeTab} />
@@ -89,10 +88,26 @@ const Dashboard = () => {
         );
     }
 
+    if (dashboardError || websitesError) {
+        return (
+            <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
+                <Sidebar activeTab={activeTab} />
+                <main className="flex-1 p-8 overflow-auto">
+                    <div className="max-w-6xl">
+                        <div className="text-red-500">
+                            Error loading data. Please try again.
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+
     const stats = [
-        { label: 'Active Websites', value: Data.active_websites, icon: Globe },
-        { label: 'Total Impressions', value: Data.totalImpressions, icon: Eye, },
-        { label: 'Total Earnings', value: `${Data.totalEarnings} SOL`, icon: DollarSign },
+        { label: 'Active Websites', value: dashboardData?.active_websites, icon: Globe },
+        { label: 'Total Impressions', value: dashboardData?.totalImpressions, icon: Eye, },
+        { label: 'Total Earnings', value: `${dashboardData?.totalEarnings} SOL`, icon: DollarSign },
     ];
 
 
