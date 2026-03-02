@@ -1,10 +1,48 @@
 'use client'
 
-import { BarChart3, ArrowDownRight, ArrowUpRight, DollarSign, Download, ExternalLink, TrendingUp } from 'lucide-react';
+import { BarChart3, ArrowDownRight, ArrowUpRight, DollarSign, Download, ExternalLink, TrendingUp, Pencil } from 'lucide-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
+import BN from 'bn.js';
 import Sidebar from '../sidebar/sidebar';
+import { useQuery } from '@tanstack/react-query';
+import { useSession } from "next-auth/react";
+import { useEffect } from 'react';
+type Earnings_Data = {
+    wallet_address: string;
+}
+
+const fetchEarningData = async (): Promise<Earnings_Data> => {
+    const res = await fetch("/api/crud/Publisher/Earning");
+    if (!res.ok) throw new Error('Failed to fetch Earnings data');
+    return res.json();
+}
 
 const Earnings = () => {
+
+    const { status } = useSession();
     const activeTab = 'Earnings';
+
+    const fetchquery = useQuery({
+        queryKey: ['earnings'],
+        queryFn: fetchEarningData,
+        enabled: status === 'authenticated',
+    })
+
+    const Withdraw_BTN = () => {
+        fetchquery.refetch();
+        try {
+           
+        } catch (error) {
+            
+        }
+    };
+    useEffect(() => {
+        console.log(fetchquery.data?.wallet_address);
+    }, [fetchquery.data]);
+
+
+
 
     const transactions = [
         { type: 'earning', amount: '0.42 SOL', date: '2 hours ago', status: 'Completed', source: 'TechBlog.io' },
@@ -34,13 +72,33 @@ const Earnings = () => {
                                 <p className="text-5xl font-bold mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">3.24 SOL</p>
                                 <p className="text-sm text-green-400 mb-6">+12.7% from last week</p>
                                 <div className="flex gap-3">
-                                    <button className="flex-1 px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black hover:shadow-xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
+                                    <button
+                                        onClick={Withdraw_BTN}
+                                        className="flex-1 px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black hover:shadow-xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
                                         <Download className="w-4 h-4" />
                                         Withdraw
                                     </button>
                                 </div>
                             </div>
+
+                            <div className="mt-10 flex flex-col items-baseline">
+                                <div className='text-gray-500 text-sm mb-1'>
+                                    Reciver's address
+                                </div>
+                                <div className='flex items-center gap-2'>
+                                    <div className='text-[#00FFA3]'>
+                                        {fetchquery.data?.wallet_address}
+                                    </div>
+                                    <button
+                                        className="flex items-center gap-1 text-gray-500 hover:text-gray-300 cursor-pointer ml-2 transition-colors duration-200 group">
+                                        <Pencil className="w-3.5 h-3.5" />
+                                        <span className="text-xs group-hover:underline">Edit</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+
+
 
                         <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-8 rounded-2xl">
                             <p className="text-sm text-gray-500 mb-6">Earnings Overview</p>

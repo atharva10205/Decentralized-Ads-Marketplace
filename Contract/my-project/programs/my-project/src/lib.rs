@@ -2,169 +2,226 @@ use anchor_lang::prelude::*;
 
 declare_id!("5AhkXaS77PEWP8pDdQx3SMDbEizqJFns6an8J42dXUuw");
 
+const SERVICE_FEE: &str = "C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz";
+const PLATFORM_FEE_BASIS_POINTS: u64 = 10;
+
 #[program]
 pub mod my_project {
     use super::*;
 
-       pub fn initialize_ad(
-        ctx: Context<InitializeAd>,
-        ad_id: [u8; 32],
-        rate_per_view: u64,      
-        interval_seconds: i64,   
-    ) -> Result<()> {
+    pub fn initialise_ad(ctx: Context<InitializeAd>, ad_id: [u8; 32]) -> Result<()> {
         let ad = &mut ctx.accounts.ad;
         ad.ad_id = ad_id;
-        ad.client = *ctx.accounts.client.key;
-        ad.authority = *ctx.accounts.authority.key; 
-        ad.rate_per_view = rate_per_view;
-        ad.paid_views = 0;
-        ad.interval_seconds = interval_seconds;
-        ad.last_payout_ts = 0;
+        ad.advertiser = *ctx.accounts.advertiser.key;
+        ad.authority = *ctx.accounts.authority.key;
+        ad.is_active = true;
         Ok(())
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
-        let ix = anchor_lang::solana_program::system_instruction::transfer(
-            &ctx.accounts.client.key(),
-            &ctx.accounts.vault.to_account_info().key(),
-            amount,
+        require!(ctx.accounts.ad.is_active, AdError::AdInactive);
+        require!(amount > 0, AdError::InvalidAmount);
+
+        let fee = amount
+            .checked_mul(PLATFORM_FEE_BASIS_POINTS)
+            .ok_or(AdError::Overflow)?
+            .checked_div(1000)
+            .ok_or(AdError::Overflow)?;
+
+        let amount_to_vault = amount.checked_sub(fee).ok_or(AdError::Overflow)?;
+
+        if fee > 0 {
+            let fee_txn = anchor_lang::solana_program::system_instruction::transfer(
+                &ctx.accounts.advertiser.key,
+                &ctx.accounts.service_fee.key,
+                fee,
+            );
+
+            anchor_lang::solana_program::program::invoke(
+                &fee_txn,
+                &[
+                    ctx.accounts.advertiser.to_account_info(),
+                    ctx.accounts.service_fee.to_account_info(),
+                ],
+            )?;
+        }
+
+        let vault_txn = anchor_lang::solana_program::system_instruction::transfer(
+            &ctx.accounts.advertiser.key(),
+            &ctx.accounts.vault.key(),
+            amount_to_vault,
         );
+
         anchor_lang::solana_program::program::invoke(
-            &ix,
+            &vault_txn,
             &[
-                ctx.accounts.client.to_account_info(),
+                ctx.accounts.advertiser.to_account_info(),
                 ctx.accounts.vault.to_account_info(),
             ],
         )?;
+
         Ok(())
     }
 
-    pub fn payout(ctx: Context<Payout>, current_views_from_db: u64) -> Result<()> {
-        let ad = &mut ctx.accounts.ad;
+    pub fn record_impression(ctx: Context<RecordImpression>, amount: u64) -> Result<()> {
+        let ad = &ctx.accounts.ad;
 
-        require_keys_eq!(ad.authority, *ctx.accounts.authority.key, AdError::Unauthorized);
-
-        let clock = Clock::get()?;
-        let now = clock.unix_timestamp;
-        require!(now >= ad.last_payout_ts + ad.interval_seconds, AdError::PayoutTooSoon);
-
-        if current_views_from_db <= ad.paid_views {
-            ad.last_payout_ts = now;
-            return Ok(());
-        }
-        let delta: u64 = current_views_from_db - ad.paid_views;
-
-        let amount128 = (delta as u128)
-            .checked_mul(ad.rate_per_view as u128)
-            .ok_or(AdError::Overflow)?;
-        let amount = u64::try_from(amount128).map_err(|_| AdError::Overflow)?;
+        require!(ad.is_active, AdError::AdInactive);
+        require!(amount > 0, AdError::InvalidAmount);
 
         let vault_lamports = ctx.accounts.vault.to_account_info().lamports();
         require!(vault_lamports >= amount, AdError::InsufficientVault);
 
-        // derive bump from stored bump in vault account
-        let bump = ctx.accounts.vault.bump;
-        let seeds = &[
-            b"vault".as_ref(),
-            ad.client.as_ref(),
-            ad.ad_id.as_ref(),
-            &[bump],
-        ];
-        // kept to use if/when you call invoke_signed; underscore silences unused warning for now
-        let _signer_seeds = &[&seeds[..]];
+        require_keys_eq!(
+            ad.authority,
+            *ctx.accounts.signer.key,
+            AdError::Unauthorized
+        );
+        let vault_lamports = ctx.accounts.vault.lamports();
+        let current_claimable = ctx.accounts.earnings.claimable_amount;
 
-        // direct lamports transfer by mutating accounts (vault is owned by program)
-        **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= amount;
-        **ctx.accounts.recipient.to_account_info().try_borrow_mut_lamports()? += amount;
+        let checked = current_claimable.checked_add(amount);
+        let total_owed_after;
 
-        ad.paid_views = current_views_from_db;
-        ad.last_payout_ts = now;
+        if checked.is_none() {
+            return Err(AdError::Overflow.into());
+        } else {
+            total_owed_after = checked.unwrap();
+        }
+        if vault_lamports < total_owed_after {
+            return Err(AdError::InsufficientVault.into());
+        }
+
+        let earnings = &mut ctx.accounts.earnings;
+        earnings.publisher = ctx.accounts.publisher.key();
+        earnings.ad = ctx.accounts.ad.key();
+        earnings.claimable_amount = total_owed_after;
 
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-#[instruction(ad_id: [u8; 32], rate_per_view: u64, interval_seconds: i64)]
-pub struct InitializeAd<'info> {
-    #[account(init, payer = client, space = 8 + Ad::MAX_SIZE, seeds = [b"ad", client.key().as_ref(), ad_id.as_ref()], bump)]
+pub struct RecordImpression<'info> {
+    #[account(
+        mut,
+        seeds=[b"ad", signer.key().as_ref(), ad.ad_id.as_ref()],
+        bump
+    )]
     pub ad: Account<'info, Ad>,
 
-    /// vault stores just a bump byte (owned by this program)
-    #[account(init, payer = client, space = 8 + 1, seeds = [b"vault", client.key().as_ref(), ad_id.as_ref()], bump)]
-    pub vault: Account<'info, VaultAccount>,
+    #[account(
+        mut,
+        seeds = [b"vault", signer.key().as_ref(), ad.ad_id.as_ref()],
+        bump)]
+    pub vault: SystemAccount<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 8 + EarningsRecord::MAX_SIZE,
+        seeds = [b"earnings", ad.key().as_ref(), publisher.key().as_ref()],
+        bump
+    )]
+    pub earnings: Account<'info, EarningsRecord>,
 
     #[account(mut)]
-    pub client: Signer<'info>,
+    pub signer: Signer<'info>,
 
-    /// CHECK: oracle/updater who is allowed to call payout. This is unchecked because the program
-    /// only compares the pubkey (ad.authority) to the signer, and does not read/write any account data.
-    pub authority: UncheckedAccount<'info>,
-
+    /// CHECK:ok
+    pub publisher: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
-    #[account(mut, seeds = [b"ad", client.key().as_ref(), ad.ad_id.as_ref()], bump)]
+    #[account(
+        mut,
+        seeds = [b"ad", advertiser.key().as_ref(), ad.ad_id.as_ref()],
+        bump
+    )]
     pub ad: Account<'info, Ad>,
 
-    #[account(mut, seeds = [b"vault", client.key().as_ref(), ad.ad_id.as_ref()], bump)]
-    pub vault: Account<'info, VaultAccount>,
+    #[account(
+        mut,
+        seeds = [b"vault", advertiser.key().as_ref(), ad.ad_id.as_ref()],
+        bump)]
+    pub vault: SystemAccount<'info>,
 
     #[account(mut)]
-    pub client: Signer<'info>,
+    pub advertiser: Signer<'info>,
+
+    #[account(
+        mut,
+        constraint = service_fee.key().to_string() == SERVICE_FEE @ AdError::InvalidFeeRecipient
+    )]
+    /// CHECK:ok
+    pub service_fee: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-pub struct Payout<'info> {
-    #[account(mut, seeds = [b"ad", ad.client.as_ref(), ad.ad_id.as_ref()], bump)]
+#[instruction(ad_id:[u8;32])]
+pub struct InitializeAd<'info> {
+    #[account(
+        init,
+        payer = advertiser,
+        space = 8 + Ad::MAX_SIZE,
+        seeds = [b"ad", advertiser.key().as_ref(), ad_id.as_ref()],
+        bump
+    )]
     pub ad: Account<'info, Ad>,
 
-    #[account(mut, seeds = [b"vault", ad.client.as_ref(), ad.ad_id.as_ref()], bump)]
-    pub vault: Account<'info, VaultAccount>,
+    #[account(
+        mut,
+        seeds = [b"vault", advertiser.key().as_ref(), ad_id.as_ref()],
+        bump
+    )]
+    pub vault: SystemAccount<'info>,
 
-    /// CHECK: recipient of payout. This is unchecked because the program only transfers lamports to this account;
-    /// no program-owned data is read or written and no authority is assumed for this account.
     #[account(mut)]
-    pub recipient: UncheckedAccount<'info>,
+    pub advertiser: Signer<'info>,
 
-    /// caller authority (must equal ad.authority)
-    pub authority: Signer<'info>,
-
+    /// CHECK:ok
+    pub authority: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
 #[account]
-pub struct VaultAccount {
-    pub bump: u8,
+pub struct Ad {
+    ad_id: [u8; 32],
+    pub advertiser: Pubkey,
+    pub authority: Pubkey,
+    pub is_active: bool,
 }
 
 #[account]
-pub struct Ad {
-    pub ad_id: [u8; 32],         // renamed to avoid collision with declare_id!()
-    pub client: Pubkey,
-    pub authority: Pubkey,
-    pub rate_per_view: u64,   // lamports per view
-    pub paid_views: u64,
-    pub interval_seconds: i64,
-    pub last_payout_ts: i64,
+pub struct EarningsRecord {
+    pub publisher: Pubkey,
+    pub ad: Pubkey,
+    pub claimable_amount: u64,
+}
+
+impl EarningsRecord {
+    pub const MAX_SIZE: usize = 32 + 32 + 8;
 }
 
 impl Ad {
-    pub const MAX_SIZE: usize = 32 + 32 + 32 + 8 + 8 + 8 + 8;
+    pub const MAX_SIZE: usize = 32 + 32 + 32 + 1;
 }
-
 #[error_code]
 pub enum AdError {
     #[msg("Unauthorized.")]
     Unauthorized,
-    #[msg("Payout happened too soon.")]
-    PayoutTooSoon,
     #[msg("Insufficient vault balance.")]
     InsufficientVault,
-    #[msg("Overflow in multiplication.")]
+    #[msg("Ad is not active.")]
+    AdInactive,
+    #[msg("Invalid amount.")]
+    InvalidAmount,
+    #[msg("Overflow in calculation.")]
     Overflow,
+    #[msg("Invalid fee recipient.")]
+    InvalidFeeRecipient,
 }

@@ -3,7 +3,6 @@
 import { Globe, Eye, DollarSign, Plus } from 'lucide-react';
 import Sidebar from '../sidebar/sidebar';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { useSession } from "next-auth/react";
 import { useQuery } from '@tanstack/react-query';
 

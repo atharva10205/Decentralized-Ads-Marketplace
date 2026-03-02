@@ -3,21 +3,31 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react'
+import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets'
+import { clusterApiUrl } from '@solana/web3.js'
+
+const wallets = [new PhantomWalletAdapter()];
+const endpoint = clusterApiUrl('devnet'); // change to 'mainnet-beta' when ready
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000, 
+        staleTime: 60 * 1000,
         refetchOnWindowFocus: false,
       },
     },
   }))
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   )
 }

@@ -1,7 +1,16 @@
 'use client'
 
-import { HelpCircle, Globe, Phone, Download, ChevronDown, ChevronUp, User, ChevronRight, Check, X, Link2, Upload, AlertCircle } from 'lucide-react';
+import { getPDA, getProgram, adIdToBytes } from '@/lib/solana';
+import { HelpCircle, ChevronRight, Check, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey, SystemProgram } from '@solana/web3.js';
+import BN from 'bn.js';
+import { useRouter } from 'next/navigation';
+
+
+const AUTHORITY = new PublicKey("C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz");
+
 
 export default function Three({ next, back, adID }) {
     const [Customclick, setCustomclick] = useState<number>(0);
@@ -10,8 +19,18 @@ export default function Three({ next, back, adID }) {
     const [maximim_cost_per_bid, set_maximim_cost_per_bid] = useState<number>(0);
     const [Cost, setCost] = useState<CostItem[]>([])
     const [publicKey, setPublicKey] = useState<string | null>("");
-    const [click, setclick] = useState<number>(0);
+    const [Clicks, setClicks] = useState<number>(0);
     const [errors, setErrors] = useState<Error>({})
+    const { connection } = useConnection();
+    const [Pay_Button_State, setPay_Button_State] = useState(false)
+    const ClintKey = useWallet();
+    const router = useRouter();
+
+
+    useEffect(() => {
+        console.log(adID, "adIDadIDadIDadIDadID")
+    }, [adID])
+
 
     useEffect(() => {
         setErrors({})
@@ -29,26 +48,59 @@ export default function Three({ next, back, adID }) {
         click?: String;
     }
 
-    // Helper function to format SOL amounts with up to 8 decimal places
     const formatSOL = (amount: number): string => {
-        // Round to 8 decimal places and remove trailing zeros
         return parseFloat(amount.toFixed(8)).toString();
     };
 
-    const pay = async () => {
+    const Initialize = async () => {
         const newError: Error = {}
 
+        if (!publicKey) { alert("Please connect your wallet first"); return; }
+        if (selected === "") { newError.selected = "This field is mandatory"; setErrors(newError); return; }
+        if (selected === "custom" && Customclick === 0) { newError.click = "This is mandatory"; setErrors(newError); return; }
+        if (maximim_cost_per_bid === 0) { newError.maximim_cost_per_bid = "This field is mandatory"; setErrors(newError); return; }
+
+        try {
+            const adIdBytes = adIdToBytes(adID);    
+            const program = getProgram(ClintKey, connection);
+            const { adPDA, vaultPDA } = getPDA(new PublicKey(publicKey), adIdBytes);
+
+            const tx = await program.methods
+                .initialiseAd(adIdBytes)
+                .accounts({
+                    ad: adPDA,
+                    vault: vaultPDA,
+                    advertiser: new PublicKey(publicKey),
+                    authority: AUTHORITY,
+                    systemProgram: SystemProgram.programId,
+                }).rpc();
+
+            console.log("Initialized:", tx);
+            setPay_Button_State(true);
+
+        } catch (err: any) {
+            console.error(" Init failed:", err);
+            alert("Initialization failed: " + err.message);
+        }
+    }
+    const Deposit = async () => {
+        const newError: Error = {}
+
+        if (!publicKey) {
+            alert("Please connect your wallet first");
+            return;
+        }
         if (selected === "") {
             newError.selected = "This field is mandatory"
             setErrors(newError)
             return
         }
-
-        if (Customclick == 0 && click === 0 && selected === "custom") {
+        if (Customclick == 0 && Clicks === 0 && selected === "custom") {
             newError.click = "This is mandatory"
             setErrors(newError)
             return
         }
+
 
         let clickValue = 0;
 
@@ -61,16 +113,46 @@ export default function Three({ next, back, adID }) {
         } else if (selected === "custom") {
             clickValue = Customclick;
         }
+        setClicks(clickValue);
 
-        setclick(clickValue);
+        const totalSOL = clickValue * maximim_cost_per_bid;
+        const lamports = Math.round(totalSOL * 1_000_000_000);
 
-        const res = await fetch("/api/crud/Advertiser-campaign-step-3", {
-            method: "POST",
-            headers: {
-                "content-type": "application/JSON"
-            },
-            body: JSON.stringify({ publicKey, maximim_cost_per_bid, click: clickValue, adID })
-        });
+
+
+        try {
+            const adIdBytes = adIdToBytes(adID);
+            const program = getProgram(ClintKey, connection);
+            const { adPDA, vaultPDA } = getPDA(new PublicKey(publicKey), adIdBytes);
+            const SERVICE_FEE = new PublicKey("C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz");
+
+            const depositTx = await program.methods
+                .deposit(new BN(lamports))
+                .accounts({
+                    ad: adPDA,
+                    vault: vaultPDA,
+                    advertiser: new PublicKey(publicKey),
+                    serviceFee: SERVICE_FEE,
+                    systemProgram: SystemProgram.programId,
+                }).rpc();
+
+            console.log("Deposited:", depositTx);
+
+            const res = await fetch("/api/crud/Advertiser-campaign-step-3", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ publicKey, maximim_cost_per_bid, click: clickValue, adID })
+            });
+
+            if (res.ok){ 
+                router.push("/Advertiser/Campaigns")
+                next()};
+
+        } catch (err: any) {
+            console.error(" Deposit failed:", err);
+            alert("Deposit failed: " + err.message);
+        }
+
     }
 
     const check_btn = () => {
@@ -92,8 +174,8 @@ export default function Three({ next, back, adID }) {
         setCost(
             CLICKS.map(clicks => ({
                 clicks,
-                cpc: parseFloat(cpc.toFixed(8)), // Round CPC to 8 decimals
-                weekly: parseFloat((clicks * cpc).toFixed(8)), // Round weekly cost to 8 decimals
+                cpc: parseFloat(cpc.toFixed(8)),
+                weekly: parseFloat((clicks * cpc).toFixed(8)),
             }))
         );
     };
@@ -104,10 +186,8 @@ export default function Three({ next, back, adID }) {
                 alert("Phantom wallet not found");
                 return;
             }
-
             const res = await window.solana.connect();
             const key = res.publicKey.toString();
-
             setPublicKey(key);
         } catch (err) {
             console.error("Wallet connection failed", err);
@@ -119,13 +199,11 @@ export default function Three({ next, back, adID }) {
 
         await window.solana.disconnect();
         console.log("Disconnected:", publicKey);
-
         setPublicKey(null);
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] font-sans">
-            {/* Top Header */}
             <header className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border-b border-gray-800/50">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
@@ -298,7 +376,6 @@ export default function Three({ next, back, adID }) {
                                                         </h2>
 
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            {/* LOW */}
                                                             <div
                                                                 className={`border-2 rounded-lg p-4 cursor-pointer transition-all
                                                                     ${selected === "low"
@@ -309,10 +386,10 @@ export default function Three({ next, back, adID }) {
                                                             >
                                                                 <div className="flex items-start justify-between mb-3">
                                                                     <div className="flex items-center gap-3">
-                                                                        <input 
-                                                                            type="radio" 
-                                                                            checked={selected === "low"} 
-                                                                            readOnly 
+                                                                        <input
+                                                                            type="radio"
+                                                                            checked={selected === "low"}
+                                                                            readOnly
                                                                             className="accent-[#00FFA3]"
                                                                         />
                                                                         <span className="text-gray-200 font-medium">{formatSOL(Cost[0]?.weekly || 0)} SOL</span>
@@ -348,10 +425,10 @@ export default function Three({ next, back, adID }) {
                                                             >
                                                                 <div className="flex items-start justify-between mb-3">
                                                                     <div className="flex items-center gap-3">
-                                                                        <input 
-                                                                            type="radio" 
-                                                                            checked={selected === "medium"} 
-                                                                            readOnly 
+                                                                        <input
+                                                                            type="radio"
+                                                                            checked={selected === "medium"}
+                                                                            readOnly
                                                                             className="accent-[#00FFA3]"
                                                                         />
                                                                         <div className="flex items-center gap-2">
@@ -392,10 +469,10 @@ export default function Three({ next, back, adID }) {
                                                             >
                                                                 <div className="flex items-start justify-between mb-3">
                                                                     <div className="flex items-center gap-3">
-                                                                        <input 
-                                                                            type="radio" 
-                                                                            checked={selected === "high"} 
-                                                                            readOnly 
+                                                                        <input
+                                                                            type="radio"
+                                                                            checked={selected === "high"}
+                                                                            readOnly
                                                                             className="accent-[#00FFA3]"
                                                                         />
                                                                         <span className="text-gray-200 font-medium">{formatSOL(Cost[2]?.weekly || 0)} SOL</span>
@@ -431,10 +508,10 @@ export default function Three({ next, back, adID }) {
                                                             >
                                                                 <div className="flex items-start justify-between mb-2">
                                                                     <div className="flex items-center gap-3">
-                                                                        <input 
-                                                                            type="radio" 
-                                                                            checked={selected === "custom"} 
-                                                                            readOnly 
+                                                                        <input
+                                                                            type="radio"
+                                                                            checked={selected === "custom"}
+                                                                            readOnly
                                                                             className="accent-[#00FFA3]"
                                                                         />
                                                                         <span className="text-gray-200 font-medium">Set custom Click</span>
@@ -496,19 +573,40 @@ export default function Three({ next, back, adID }) {
                                     >
                                         Back
                                     </button>
-
-                                    <button
-                                        onClick={pay}
-                                        className="group relative px-8 py-3 cursor-pointer rounded-xl font-semibold
+                                    {!Pay_Button_State && (
+                                        <button
+                                            onClick={Initialize}
+                                            className="group relative px-8 py-3 cursor-pointer rounded-xl font-semibold
                                           bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]
                                           text-black overflow-hidden
                                           hover:shadow-2xl hover:shadow-[#00FFA3]/20
                                           active:scale-95
                                           transition-all duration-300"
-                                    >
-                                        <span className="relative z-10">Pay</span>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                    </button>
+                                        >
+
+                                            <span className="relative z-10">Initialize</span>
+
+
+                                            <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        </button>
+                                    )}
+                                    {Pay_Button_State && (
+                                        <button
+                                            onClick={Deposit}
+                                            className="group relative px-8 py-3 cursor-pointer rounded-xl font-semibold
+                                          bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]
+                                          text-black overflow-hidden
+                                          hover:shadow-2xl hover:shadow-[#00FFA3]/20
+                                          active:scale-95
+                                          transition-all duration-300"
+                                        >
+
+                                            <span className="relative z-10">Deposit funds</span>
+
+
+                                            <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

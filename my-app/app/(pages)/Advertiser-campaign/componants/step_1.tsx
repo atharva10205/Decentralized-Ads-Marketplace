@@ -6,6 +6,7 @@ import { useState } from 'react'
 type OneProps = {
     next: () => void;
     setAdID: (id: string) => void;
+    setFormattedURL: (url: string) => void;
 };
 
 type Errors = {
@@ -18,12 +19,10 @@ export default function One({ next, setAdID }: OneProps) {
     const [url, setUrl] = useState("")
     const [errors, setErrors] = useState<Errors>({})
     const [loading, setLoading] = useState(false);
-
-    // URL validation function
+   
     const isValidUrl = (urlString: string): boolean => {
         if (!urlString.trim()) return false;
         
-        // Add https:// prefix if not present for validation
         const urlToTest = urlString.startsWith('http://') || urlString.startsWith('https://') 
             ? urlString 
             : `https://${urlString}`;
@@ -60,10 +59,7 @@ export default function One({ next, setAdID }: OneProps) {
             return;
         }
 
-        // Ensure URL has https:// prefix before sending to backend
-        const formattedUrl = url.startsWith('http://') || url.startsWith('https://') 
-            ? url 
-            : `https://${url}`;
+        const formattedUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
 
         const res = await fetch("/api/crud/Advertiser-campaign-step-1", {
             method: "POST",
@@ -85,12 +81,10 @@ export default function One({ next, setAdID }: OneProps) {
         next();
     }
 
-    // Real-time validation as user types (optional but provides better UX)
     const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setUrl(value);
         
-        // Clear error when user starts typing
         if (errors.url) {
             setErrors(prev => ({ ...prev, url: undefined }));
         }
@@ -107,7 +101,6 @@ export default function One({ next, setAdID }: OneProps) {
                 </div>
             )}
             <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] font-sans">
-                {/* Top Header */}
                 <header className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border-b border-gray-800/50">
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16">
@@ -136,7 +129,6 @@ export default function One({ next, setAdID }: OneProps) {
 
                 <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Left Sidebar - Progress Steps */}
                         <aside className="lg:w-64 flex-shrink-0">
                             <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl shadow-xl p-6 sticky top-8">
                                 <h3 className="font-semibold text-gray-200 mb-6 text-lg">Add business information</h3>
@@ -166,7 +158,6 @@ export default function One({ next, setAdID }: OneProps) {
                                         </div>
                                     </div>
 
-                                    {/* Create your campaign section */}
                                     <div className="relative">
                                         <div className="flex items-center">
                                             <div className="w-8 h-8 bg-[#161616] border border-gray-800/50 rounded-full flex items-center justify-center text-gray-500 text-sm font-medium mr-3">
@@ -176,7 +167,6 @@ export default function One({ next, setAdID }: OneProps) {
                                         </div>
                                     </div>
 
-                                    {/* Enter payment details section */}
                                     <div>
                                         <div className="flex items-center">
                                             <div className="w-8 h-8 bg-[#161616] border border-gray-800/50 rounded-full flex items-center justify-center text-gray-500 text-sm font-medium mr-3">
@@ -189,7 +179,6 @@ export default function One({ next, setAdID }: OneProps) {
                             </div>
                         </aside>
 
-                        {/* Main Content Area */}
                         <div className="flex-1">
                             <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl shadow-xl overflow-hidden">
                                 <div className="p-8">
@@ -208,7 +197,6 @@ export default function One({ next, setAdID }: OneProps) {
                                         </p>
                                     </div>
 
-                                    {/* Business Name Section */}
                                     <div className="mb-10">
                                         <div className="flex items-center justify-between mb-4">
                                             <label className="block text-sm font-semibold text-gray-200">
@@ -239,7 +227,6 @@ export default function One({ next, setAdID }: OneProps) {
                                         </div>
                                     </div>
 
-                                    {/* Divider */}
                                     <div className="relative my-10">
                                         <div className="absolute inset-0 flex items-center">
                                             <div className="w-full border-t border-gray-800/50"></div>
@@ -249,7 +236,6 @@ export default function One({ next, setAdID }: OneProps) {
                                         </div>
                                     </div>
 
-                                    {/* URL Destination Section */}
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-200 mb-2">
                                             Choose your destination
@@ -258,7 +244,6 @@ export default function One({ next, setAdID }: OneProps) {
                                             Select where you want to send people who click your ad
                                         </p>
 
-                                        {/* Your Website Option */}
                                         <div className="mb-8 p-4 border border-gray-800/50 rounded-xl hover:border-[#00FFA3]/30 hover:shadow-lg hover:shadow-[#00FFA3]/5 transition-all">
                                             <div className="flex items-start mb-4">
                                                 <div className="flex items-center h-5 mt-0.5">
@@ -312,7 +297,6 @@ export default function One({ next, setAdID }: OneProps) {
                                     </div>
                                 </div>
 
-                                {/* Footer with Help and Next Button */}
                                 <div className="px-8 py-6 bg-[#0a0a0a] border-t border-gray-800/50">
                                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                         <div className="text-sm text-gray-500">
