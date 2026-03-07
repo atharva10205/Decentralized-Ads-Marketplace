@@ -9,6 +9,7 @@ import BN from 'bn.js';
 import { useRouter } from 'next/navigation';
 
 
+
 const AUTHORITY = new PublicKey("C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz");
 
 
@@ -61,7 +62,7 @@ export default function Three({ next, back, adID }) {
         if (maximim_cost_per_bid === 0) { newError.maximim_cost_per_bid = "This field is mandatory"; setErrors(newError); return; }
 
         try {
-            const adIdBytes = adIdToBytes(adID);    
+            const adIdBytes = adIdToBytes(adID);
             const program = getProgram(ClintKey, connection);
             const { adPDA, vaultPDA } = getPDA(new PublicKey(publicKey), adIdBytes);
 
@@ -232,13 +233,11 @@ export default function Three({ next, back, adID }) {
 
             <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Left Sidebar - Progress Steps */}
                     <aside className="lg:w-64 flex-shrink-0">
                         <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl shadow-xl p-6 sticky top-8">
                             <h3 className="font-semibold text-gray-200 mb-6 text-lg">Add business information</h3>
 
                             <div className="space-y-8">
-                                {/* About your business section */}
                                 <div className="relative">
                                     <div className="flex items-center mb-4">
                                         <div className="w-8 h-8 bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full flex items-center justify-center text-black text-sm font-semibold shadow-lg shadow-[#00FFA3]/20 mr-3">
@@ -248,7 +247,6 @@ export default function Three({ next, back, adID }) {
                                     </div>
                                 </div>
 
-                                {/* Create your campaign section */}
                                 <div className="relative">
                                     <div className="flex items-center mb-4">
                                         <div className="w-8 h-8 bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full flex items-center justify-center text-black text-sm font-semibold shadow-lg shadow-[#00FFA3]/20 mr-3">
@@ -258,7 +256,6 @@ export default function Three({ next, back, adID }) {
                                     </div>
                                 </div>
 
-                                {/* Enter payment details section */}
                                 <div>
                                     <div className="flex items-center">
                                         <div className="w-8 h-8 bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full flex items-center justify-center text-black text-sm font-semibold shadow-lg shadow-[#00FFA3]/20 mr-3">
@@ -457,8 +454,6 @@ export default function Three({ next, back, adID }) {
                                                                     </div>
                                                                 </div>
                                                             </div>
-
-                                                            {/* HIGH */}
                                                             <div
                                                                 className={`border-2 rounded-lg p-4 cursor-pointer transition-all
                                                                     ${selected === "high"

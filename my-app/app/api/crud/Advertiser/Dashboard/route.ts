@@ -55,9 +55,6 @@ export async function GET(req: Request) {
         }
     })
 
-    console.log("ad_clicks", ad_clicks)
-    console.log("cpc", cpc)
-
      const TotalSpend = ad_clicks.reduce((total, adClick) => {
         // Find the matching ad's CPC
         const ad = cpc.find(a => a.id === adClick.ad_id);

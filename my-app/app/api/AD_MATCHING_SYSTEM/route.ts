@@ -108,7 +108,7 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
         }
         console.log(`Cache MISS for publisher: ${website_url}`);
     } catch (error) {
-        console.error('Redis GET error:', err);
+        console.error('Redis GET error:', error);
     }
 
 
@@ -118,7 +118,7 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
         where: { website_url: website_url }
     })
 
-    if (!publisher || publisher.status == "active") return [];
+    if (!publisher || publisher.status == "active") return [];//paimon
 
     const ads = await GetEligebleAd();
 

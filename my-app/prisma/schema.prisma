@@ -32,6 +32,7 @@ model Ad {
   created_at      DateTime @default(now())
   updated_at      DateTime  @default(now()) @updatedAt
   impression Int?
+  status   Boolean  @default(true)
 }
 
 model Publisher {
@@ -56,11 +57,23 @@ model Impression {
 
   @@unique([ad_id, publisher_id,publisher_url])
 }
-
 model Click {
   id            String   @id @default(uuid())
   ad_id         String
   publisher_id  String
   publisher_url String
+  processed     Boolean  @default(false) 
+}
 
+model EarningsRecord {
+  id               String    @id @default(uuid())
+  publisher_wallet String
+  ad_id            String
+  claimable_amount Int
+  settled          Boolean   @default(false)
+  tx_signature     String?
+  settled_at       DateTime?
+  created_at       DateTime  @default(now())
+
+  @@unique([publisher_wallet, ad_id])
 }

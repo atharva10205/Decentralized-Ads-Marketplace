@@ -178,6 +178,122 @@ export const IDL = {
           }
         }
       ]
+    },
+    {
+      "name": "record_impression",
+      "discriminator": [
+        118,
+        199,
+        131,
+        33,
+        198,
+        152,
+        151,
+        235
+      ],
+      "accounts": [
+        {
+          "name": "ad",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "advertiser"
+              },
+              {
+                "kind": "account",
+                "path": "ad.ad_id",
+                "account": "Ad"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "advertiser"
+              },
+              {
+                "kind": "account",
+                "path": "ad.ad_id",
+                "account": "Ad"
+              }
+            ]
+          }
+        },
+        {
+          "name": "earnings",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  97,
+                  114,
+                  110,
+                  105,
+                  110,
+                  103,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "ad"
+              },
+              {
+                "kind": "account",
+                "path": "publisher"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "advertiser"
+        },
+        {
+          "name": "publisher"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -192,6 +308,19 @@ export const IDL = {
         137,
         214,
         47
+      ]
+    },
+    {
+      "name": "EarningsRecord",
+      "discriminator": [
+        130,
+        137,
+        103,
+        163,
+        31,
+        68,
+        239,
+        194
       ]
     }
   ],
@@ -253,6 +382,26 @@ export const IDL = {
           {
             "name": "is_active",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EarningsRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "publisher",
+            "type": "pubkey"
+          },
+          {
+            "name": "ad",
+            "type": "pubkey"
+          },
+          {
+            "name": "claimable_amount",
+            "type": "u64"
           }
         ]
       }

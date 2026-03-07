@@ -101,35 +101,39 @@ pub mod my_project {
     }
 }
 
+pub fn claim(ctx: Context<Claim>) -> Result<()> {
+    Ok(())
+}
+
 #[derive(Accounts)]
-pub struct RecordImpression<'info> {
+pub struct Claim<'info> {
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(ad_id:[u8;32])]
+pub struct InitializeAd<'info> {
     #[account(
-        mut,
-        seeds=[b"ad", signer.key().as_ref(), ad.ad_id.as_ref()],
+        init,
+        payer = advertiser,
+        space = 8 + Ad::MAX_SIZE,
+        seeds = [b"ad", advertiser.key().as_ref(), ad_id.as_ref()],
         bump
     )]
     pub ad: Account<'info, Ad>,
 
     #[account(
         mut,
-        seeds = [b"vault", signer.key().as_ref(), ad.ad_id.as_ref()],
-        bump)]
-    pub vault: SystemAccount<'info>,
-
-    #[account(
-        init_if_needed,
-        payer = signer,
-        space = 8 + EarningsRecord::MAX_SIZE,
-        seeds = [b"earnings", ad.key().as_ref(), publisher.key().as_ref()],
+        seeds = [b"vault", advertiser.key().as_ref(), ad_id.as_ref()],
         bump
     )]
-    pub earnings: Account<'info, EarningsRecord>,
+    pub vault: SystemAccount<'info>,
 
     #[account(mut)]
-    pub signer: Signer<'info>,
+    pub advertiser: Signer<'info>,
 
     /// CHECK:ok
-    pub publisher: UncheckedAccount<'info>,
+    pub authority: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -162,29 +166,37 @@ pub struct Deposit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(ad_id:[u8;32])]
-pub struct InitializeAd<'info> {
+pub struct RecordImpression<'info> {
     #[account(
-        init,
-        payer = advertiser,
-        space = 8 + Ad::MAX_SIZE,
-        seeds = [b"ad", advertiser.key().as_ref(), ad_id.as_ref()],
+        mut,
+        seeds=[b"ad", advertiser.key().as_ref(), ad.ad_id.as_ref()],
         bump
     )]
     pub ad: Account<'info, Ad>,
 
     #[account(
         mut,
-        seeds = [b"vault", advertiser.key().as_ref(), ad_id.as_ref()],
-        bump
-    )]
+        seeds = [b"vault", advertiser.key().as_ref(), ad.ad_id.as_ref()],
+        bump)]
     pub vault: SystemAccount<'info>,
 
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 8 + EarningsRecord::MAX_SIZE,
+        seeds = [b"earnings", ad.key().as_ref(), publisher.key().as_ref()],
+        bump
+    )]
+    pub earnings: Account<'info, EarningsRecord>,
+
     #[account(mut)]
-    pub advertiser: Signer<'info>,
+    pub signer: Signer<'info>,
+
+    /// CHECK: only used for PDA seed derivation
+    pub advertiser: UncheckedAccount<'info>,
 
     /// CHECK:ok
-    pub authority: UncheckedAccount<'info>,
+    pub publisher: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 

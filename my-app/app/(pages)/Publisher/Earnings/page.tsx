@@ -1,17 +1,15 @@
 'use client'
 
-import { BarChart3, ArrowDownRight, ArrowUpRight, DollarSign, Download, ExternalLink, TrendingUp, Pencil } from 'lucide-react';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey, SystemProgram } from '@solana/web3.js';
-import BN from 'bn.js';
+import { BarChart3, ArrowDownRight, DollarSign, Download, TrendingUp, Pencil } from 'lucide-react';
 import Sidebar from '../sidebar/sidebar';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from "next-auth/react";
-import { useEffect } from 'react';
-type Earnings_Data = {
-    wallet_address: string;
-}
 
+
+type Earnings_Data = {
+    publisher: { wallet_address: string };
+    earningsRecords: { publisher: string; ad: string; claimable_amount: number }[];
+}
 const fetchEarningData = async (): Promise<Earnings_Data> => {
     const res = await fetch("/api/crud/Publisher/Earning");
     if (!res.ok) throw new Error('Failed to fetch Earnings data');
@@ -28,28 +26,24 @@ const Earnings = () => {
         queryFn: fetchEarningData,
         enabled: status === 'authenticated',
     })
-
-    const Withdraw_BTN = () => {
-        fetchquery.refetch();
+    const Withdraw_BTN = async () => {
         try {
-           
+            const res = await fetch("/api/crud/Publisher/Earning", {
+                method: "POST",
+            });
+            const data = await res.json();
+            console.log(data);
+            fetchquery.refetch();
         } catch (error) {
-            
+            console.log(error);
         }
     };
-    useEffect(() => {
-        console.log(fetchquery.data?.wallet_address);
-    }, [fetchquery.data]);
+    const earningsRecords = fetchquery.data?.earningsRecords ?? [];
+    const publisher = fetchquery.data?.publisher ?? [];
 
 
+    const totalBalanceSOL = earningsRecords.reduce((sum, tx) => sum + tx.claimable_amount, 0) / 1_000_000;
 
-
-    const transactions = [
-        { type: 'earning', amount: '0.42 SOL', date: '2 hours ago', status: 'Completed', source: 'TechBlog.io' },
-        { type: 'withdraw', amount: '2.5 SOL', date: '1 day ago', status: 'Completed', txHash: '5x7k...3mP9' },
-        { type: 'earning', amount: '0.35 SOL', date: '2 days ago', status: 'Completed', source: 'CryptoNews Daily' },
-        { type: 'earning', amount: '0.28 SOL', date: '3 days ago', status: 'Completed', source: 'DevTutorials' },
-    ];
 
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
@@ -69,7 +63,9 @@ const Earnings = () => {
                             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10 rounded-full blur-3xl" />
                             <div className="relative z-10">
                                 <p className="text-sm text-gray-500 mb-2">Total Balance</p>
-                                <p className="text-5xl font-bold mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">3.24 SOL</p>
+                                <p className="text-5xl font-bold mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                                    {totalBalanceSOL.toFixed(4)} SOL
+                                </p>
                                 <p className="text-sm text-green-400 mb-6">+12.7% from last week</p>
                                 <div className="flex gap-3">
                                     <button
@@ -87,7 +83,7 @@ const Earnings = () => {
                                 </div>
                                 <div className='flex items-center gap-2'>
                                     <div className='text-[#00FFA3]'>
-                                        {fetchquery.data?.wallet_address}
+                                        {fetchquery.data?.publisher?.wallet_address}
                                     </div>
                                     <button
                                         className="flex items-center gap-1 text-gray-500 hover:text-gray-300 cursor-pointer ml-2 transition-colors duration-200 group">
@@ -152,41 +148,28 @@ const Earnings = () => {
                             <p className="text-sm text-gray-500">All your earnings and withdrawals</p>
                         </div>
                         <div className="divide-y divide-gray-800/50">
-                            {transactions.map((tx, idx) => (
+                            {earningsRecords.map((tx, idx) => (
                                 <div key={idx} className="p-6 hover:bg-[#161616]/50 transition-colors cursor-pointer group">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className={`p-3 rounded-xl ${tx.type === 'earning' ? 'bg-green-500/10' : 'bg-blue-500/10'}`}>
-                                                {tx.type === 'earning' ? <ArrowDownRight className="w-5 h-5 text-green-400" /> : <ArrowUpRight className="w-5 h-5 text-blue-400" />}
+                                            <div className="p-3 rounded-xl bg-green-500/10">
+                                                <ArrowDownRight className="w-5 h-5 text-green-400" />
                                             </div>
                                             <div>
-                                                <p className="font-semibold capitalize mb-1">{tx.type === 'earning' ? 'Revenue' : 'Withdrawal'}</p>
+                                                <p className="font-semibold mb-1">Revenue</p>
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <span>{tx.date}</span>
-                                                    {tx.source && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <span>{tx.source}</span>
-                                                        </>
-                                                    )}
-                                                    {tx.txHash && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <span className="font-mono">{tx.txHash}</span>
-                                                            <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <ExternalLink className="w-3 h-3" />
-                                                            </button>
-                                                        </>
-                                                    )}
+                                                    <span className="font-mono text-xs">{tx.ad}</span>
+                                                    <span>•</span>
+                                                    <span className="font-mono text-xs truncate max-w-[120px]">{tx.publisher}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className={`text-xl font-bold mb-1 ${tx.type === 'earning' ? 'text-green-400' : 'text-gray-200'}`}>
-                                                {tx.type === 'earning' ? '+' : '-'}{tx.amount}
+                                            <p className="text-xl font-bold mb-1 text-green-400">
+                                                +{(tx.claimable_amount / 1_000_000).toFixed(4)} SOL
                                             </p>
                                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20">
-                                                {tx.status}
+                                                Claimable
                                             </span>
                                         </div>
                                     </div>
