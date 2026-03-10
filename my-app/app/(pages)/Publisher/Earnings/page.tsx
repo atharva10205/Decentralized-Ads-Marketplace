@@ -1,15 +1,21 @@
 'use client'
 
-import { BarChart3, ArrowDownRight, DollarSign, Download, TrendingUp, Pencil } from 'lucide-react';
+import { BarChart3, ArrowDownRight, DollarSign, Download, TrendingUp, Pencil, Anchor, Wallet } from 'lucide-react';
 import Sidebar from '../sidebar/sidebar';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from "next-auth/react";
+import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
+import { AnchorProvider, Program } from '@coral-xyz/anchor';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { IDL } from '@/lib/idl';
+import { adIdToBytes } from '@/lib/solana';
 
 
 type Earnings_Data = {
     publisher: { wallet_address: string };
     earningsRecords: { publisher: string; ad: string; claimable_amount: number }[];
 }
+
 const fetchEarningData = async (): Promise<Earnings_Data> => {
     const res = await fetch("/api/crud/Publisher/Earning");
     if (!res.ok) throw new Error('Failed to fetch Earnings data');
@@ -20,31 +26,103 @@ const Earnings = () => {
 
     const { status } = useSession();
     const activeTab = 'Earnings';
+    const wallet = useWallet();
 
     const fetchquery = useQuery({
         queryKey: ['earnings'],
         queryFn: fetchEarningData,
         enabled: status === 'authenticated',
     })
-    const Withdraw_BTN = async () => {
-        try {
-            const res = await fetch("/api/crud/Publisher/Earning", {
-                method: "POST",
-            });
-            const data = await res.json();
-            console.log(data);
-            fetchquery.refetch();
-        } catch (error) {
-            console.log(error);
-        }
-    };
+
+
     const earningsRecords = fetchquery.data?.earningsRecords ?? [];
-    const publisher = fetchquery.data?.publisher ?? [];
-
-
     const totalBalanceSOL = earningsRecords.reduce((sum, tx) => sum + tx.claimable_amount, 0) / 1_000_000;
 
+    const Withdraw_BTN = async () => {
+        const claimedAdIds: string[] = [];
 
+        if (!wallet.publicKey || !wallet.signTransaction) {
+            alert("Please connect your wallet first");
+            return;
+        }
+
+
+        try {
+            const res = await fetch("/api/crud/Publisher/Earning", { method: "POST" });
+            const data = await res.json();
+
+
+            const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+            const balanceBefore = await connection.getBalance(wallet.publicKey);
+
+            const provider = new AnchorProvider(connection, wallet as any, {});
+            const program = new Program(IDL as any, provider);
+
+            const uniqueResults = data.results.filter(
+                (result: any, index: number, self: any[]) =>
+                    result.success && self.findIndex((r: any) => r.ad === result.ad) === index
+            );
+
+
+            for (const result of uniqueResults) {
+
+                const adIdBytes = adIdToBytes(result.ad);
+                const advertiserPubkey = new PublicKey(result.advertiser);
+                const publisherPubkey = new PublicKey(fetchquery.data?.publisher?.wallet_address!);
+
+                const [adPda] = PublicKey.findProgramAddressSync(
+                    [Buffer.from("ad"), advertiserPubkey.toBuffer(), adIdBytes],
+                    program.programId
+                );
+                const [vaultPda] = PublicKey.findProgramAddressSync(
+                    [Buffer.from("vault"), advertiserPubkey.toBuffer(), adIdBytes],
+                    program.programId
+                );
+                const [earningsPda] = PublicKey.findProgramAddressSync(
+                    [Buffer.from("earnings"), adPda.toBuffer(), publisherPubkey.toBuffer()],
+                    program.programId
+                );
+
+                const vaultBalance = await connection.getBalance(vaultPda);
+
+                try {
+                    const tx = await program.methods
+                        .claim()
+                        .accounts({
+                            vault: vaultPda,
+                            earnings: earningsPda,
+                            ad: adPda,
+                            advertiser: advertiserPubkey,
+                            publisher: publisherPubkey,
+                            systemProgram: SystemProgram.programId,
+                        })
+                        .rpc({ skipPreflight: false });
+
+                    const vaultBalanceAfter = await connection.getBalance(vaultPda);
+
+                    claimedAdIds.push(result.ad);
+
+                } catch (claimError) {
+                    console.error(" Claim failed for ad:", result.ad, claimError);
+                }
+            }
+
+            const balanceAfter = await connection.getBalance(wallet.publicKey);
+          
+        } catch (error) {
+            console.error(" Failed:", error);
+        }
+
+        if (claimedAdIds.length > 0) {
+            const patchRes = await fetch("/api/crud/Publisher/Earning", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ adIds: claimedAdIds })
+            });
+            const patchData = await patchRes.json();
+            fetchquery.refetch();
+        }
+    }
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
             <Sidebar activeTab={activeTab} />
@@ -70,7 +148,7 @@ const Earnings = () => {
                                 <div className="flex gap-3">
                                     <button
                                         onClick={Withdraw_BTN}
-                                        className="flex-1 px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black hover:shadow-xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
+                                        className="flex-1 px-6 py-3 cursor-pointer rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black hover:shadow-xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
                                         <Download className="w-4 h-4" />
                                         Withdraw
                                     </button>
@@ -182,5 +260,6 @@ const Earnings = () => {
         </div>
     );
 };
+
 
 export default Earnings;

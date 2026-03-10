@@ -7,7 +7,6 @@ import { Connection, Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import { NextResponse } from "next/server";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { adIdToBytes } from "@/lib/solana";
-import { buffer } from "stream/consumers";
 
 
 export async function GET(req: Request) {
@@ -34,9 +33,12 @@ export async function GET(req: Request) {
     if (websiteUrlMap.length === 0) {
         return NextResponse.json({ error: "No websites found" }, { status: 404 });
     }
-
     const data = await prisma.click.findMany({
-        where: { publisher_url: { in: websiteUrlMap }, processed: false },
+        where: {
+            publisher_url: { in: websiteUrlMap },
+            processed: false,
+            claimed: false
+        },
         select: { ad_id: true, publisher_id: true }
     });
 
@@ -47,7 +49,8 @@ export async function GET(req: Request) {
         select: { id: true, cost_per_click: true }
     });
 
-    const cpcMap = new Map(cpcList.map(c => [c.id, Number(c.cost_per_click)]));
+
+    const cpcMap1 = new Map(cpcList.map(c => [c.id, Number(c.cost_per_click)]));
     const publisherWallets = await prisma.publisher.findMany({
         where: { id: { in: user.map(u => u.id) } },
         select: { id: true, wallet_address: true }
@@ -55,7 +58,7 @@ export async function GET(req: Request) {
     const walletMap = new Map(publisherWallets.map(p => [p.id, p.wallet_address]));
 
     const earningsRecords = data.map(click => {
-        const cpc = cpcMap.get(click.ad_id) ?? 0;
+        const cpc = cpcMap1.get(click.ad_id) ?? 0;
         const claimable_amount = Math.round(cpc * 1_000_000);
 
         return {
@@ -65,7 +68,92 @@ export async function GET(req: Request) {
         };
     });
 
-    return NextResponse.json({ publisher, earningsRecords });
+    const history = await prisma.click.findMany({
+        where: {
+            publisher_url: { in: websiteUrlMap },
+            claimed: true
+        },
+        select: { ad_id: true, publisher_id: true, claimed_at: true },
+        orderBy: { claimed_at: 'desc' }
+    });
+
+    const adIdList = history.map(i => i.ad_id);
+
+    const cpc = await prisma.ad.findMany({
+        where: { id: { in: adIdList } },
+        select: { id: true, cost_per_click: true }
+    });
+
+    const cpcMap = Object.fromEntries(cpc.map(a => [a.id, Number(a.cost_per_click)]));
+
+
+    const sorted = [...history].sort((a, b) => {
+        if (!a.claimed_at && !b.claimed_at) return 0;
+        if (!a.claimed_at) return 1;
+        if (!b.claimed_at) return -1;
+        return a.claimed_at.getTime() - b.claimed_at.getTime();
+    });
+
+    const groupMap = new Map<string, {
+        ad_id: string;
+        publisher_id: string;
+        click_count: number;
+        earnings: number;
+        timestamp: Date | null;
+        lastTimestamp: number | null;
+    }>();
+    for (const click of sorted) {
+        const clickTime = click.claimed_at?.getTime() ?? null;
+
+        let matchedKey: string | null = null;
+
+        for (const [key, group] of groupMap.entries()) {
+            if (group.ad_id !== click.ad_id || group.publisher_id !== click.publisher_id) continue;
+
+            if (clickTime === null && group.timestamp === null) {
+                matchedKey = key;
+                break;
+            }
+
+            if (clickTime !== null && group.lastTimestamp !== null) {
+                const diff = Math.abs(clickTime - group.lastTimestamp);
+                if (diff <= 120_000) {
+                    matchedKey = key;
+                    break;
+                }
+            }
+        }
+
+        if (!matchedKey) {
+            matchedKey = `${click.ad_id}__${click.publisher_id}__${clickTime ?? 'null'}`;
+            groupMap.set(matchedKey, {
+                ad_id: click.ad_id,
+                publisher_id: click.publisher_id,
+                click_count: 0,
+                earnings: 0,
+                timestamp: click.claimed_at ?? null,
+                lastTimestamp: clickTime,  
+            });
+        }
+
+        const group = groupMap.get(matchedKey)!;
+        group.click_count += 1;
+        group.earnings += cpcMap[click.ad_id] ?? 0;
+        if (clickTime !== null) group.lastTimestamp = clickTime;
+    }
+
+    const transactionList = Array.from(groupMap.values())
+        .sort((a, b) => {
+            if (!a.timestamp && !b.timestamp) return 0;
+            if (!a.timestamp) return 1;
+            if (!b.timestamp) return -1;
+            return b.timestamp.getTime() - a.timestamp.getTime();
+        })
+        .map(({ lastTimestamp, ...rest }) => rest);
+
+    console.log("transactions", transactionList)
+
+    return NextResponse.json({ publisher, earningsRecords, transactionList });
 }
 export async function POST(req: Request) {
     const session = await auth();
@@ -77,7 +165,6 @@ export async function POST(req: Request) {
     const provider = new AnchorProvider(connection, wallet, {});
     const program = new Program(IDL as any, provider);
 
-    console.log("Authority pubkey:", keypair.publicKey.toString());
 
     const user = await prisma.publisher.findMany({
         where: { email: session.user.email },
@@ -95,8 +182,6 @@ export async function POST(req: Request) {
         select: { ad_id: true, publisher_id: true },
     });
 
-    console.log("Unprocessed clicks found:", data.length);
-
     const adIdMap = data.map((w) => w.ad_id);
 
     const cpcList = await prisma.ad.findMany({
@@ -106,7 +191,6 @@ export async function POST(req: Request) {
     const cpcMap = new Map(cpcList.map((c) => [c.id, Number(c.cost_per_click)]));
     const advertiserWalletMap = new Map(cpcList.map((c) => [c.id, c.wallet_address]));
 
-    console.log("CPC list:", cpcList.map(c => ({ id: c.id, cpc: c.cost_per_click, wallet: c.wallet_address })));
 
     const publisherWallets = await prisma.publisher.findMany({
         where: { id: { in: user.map((u) => u.id) } },
@@ -117,29 +201,20 @@ export async function POST(req: Request) {
     const results = [];
 
     for (const click of data) {
-        console.log("\n--- Processing click ---");
-        console.log("  ad_id:", click.ad_id);
-        console.log("  publisher_id:", click.publisher_id);
 
         const publisher = publisherWalletsMap.get(click.publisher_id) ?? null;
         if (!publisher) {
-            console.log("  No publisher wallet found for publisher_id:", click.publisher_id);
             continue;
         }
-        console.log("  publisher wallet:", publisher);
 
         const cpc = cpcMap.get(click.ad_id) ?? 0;
         const claimable_amount = Math.round(cpc * 1_000_000_000);
-        console.log("  cpc (SOL):", cpc);
-        console.log("  claimable_amount (lamports):", claimable_amount);
 
         const advertiserWallet = advertiserWalletMap.get(click.ad_id);
         if (!advertiserWallet) {
-            console.log("  No advertiser wallet found for ad_id:", click.ad_id);
             results.push({ ad: click.ad_id, success: false, error: "No advertiser wallet found" });
             continue;
         }
-        console.log("  advertiser wallet:", advertiserWallet);
 
         try {
             const adIdBytes = adIdToBytes(click.ad_id);
@@ -162,12 +237,6 @@ export async function POST(req: Request) {
                 program.programId
             );
 
-            console.log("  adPda:", adPda.toString());
-            console.log("  vaultPda:", vaultPda.toString());
-            console.log("  earningsPda:", earningsPda.toString());
-            console.log("  Check adPda on solscan: https://solscan.io/account/" + adPda.toString() + "?cluster=devnet");
-            console.log("  Check vaultPda on solscan: https://solscan.io/account/" + vaultPda.toString() + "?cluster=devnet");
-
             const tx = await program.methods
                 .recordImpression(new BN(claimable_amount))
                 .accounts({
@@ -180,28 +249,48 @@ export async function POST(req: Request) {
                     systemProgram: SystemProgram.programId
                 }).rpc();
 
-            console.log("  Transaction successful!");
-            console.log("  tx signature:", tx);
-            console.log("  Check tx on solscan: https://solscan.io/tx/" + tx + "?cluster=devnet");
+            results.push({ ad: click.ad_id, publisher, advertiser: advertiserWallet, tx, success: true });
 
-            results.push({ ad: click.ad_id, publisher, tx, success: true });
 
         } catch (error: any) {
-            console.log("  Transaction failed!");
-            console.log("  error name:", error?.name);
-            console.log("  error message:", error?.message);
-            // logs the specific anchor error code if present
             console.log("  error logs:", error?.logs);
             results.push({ ad: click.ad_id, publisher, success: false, error: error?.message });
         }
-        
     }
-      await prisma.click.updateMany({
-        where: { publisher_url: { in: websiteUrlMap }, processed: false },
-        data: { processed: true }
-    });
 
-    console.log("\n📊 Final results:", JSON.stringify(results, null, 2));
+    const successfulAdIds = results
+        .filter(r => r.success)
+        .map(r => r.ad);
+
+    if (successfulAdIds.length > 0) {
+        await prisma.click.updateMany({
+            where: {
+                publisher_url: { in: websiteUrlMap },
+                ad_id: { in: successfulAdIds },
+                processed: false
+            },
+            data: { processed: true }
+        });
+    }
+
 
     return NextResponse.json({ results });
+}
+
+export async function PATCH(req: Request) {
+    const session = await auth();
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { adIds } = await req.json();
+
+    await prisma.click.updateMany({
+        where: {
+            ad_id: { in: adIds },
+            processed: true,
+            claimed: false,
+        },
+        data: { claimed: true, claimed_at: new Date() }
+    });
+
+    return NextResponse.json({ success: true });
 }

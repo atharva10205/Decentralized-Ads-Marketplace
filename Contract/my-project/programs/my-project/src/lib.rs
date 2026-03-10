@@ -99,14 +99,69 @@ pub mod my_project {
 
         Ok(())
     }
-}
 
-pub fn claim(ctx: Context<Claim>) -> Result<()> {
-    Ok(())
+    pub fn claim(ctx: Context<Claim>) -> Result<()> {
+        let earnings = &ctx.accounts.earnings;
+        let claimable_amount = earnings.claimable_amount;
+
+        require!(claimable_amount > 0, AdError::InvalidAmount);
+
+        let ad_id = ctx.accounts.ad.ad_id;
+        let advertiser_key = ctx.accounts.advertiser.key();
+        let bump = ctx.bumps.vault;
+
+        let seeds: &[&[u8]] = &[b"vault", advertiser_key.as_ref(), ad_id.as_ref(), &[bump]];
+        let signer_seeds = &[seeds];
+
+        anchor_lang::solana_program::program::invoke_signed(
+            &anchor_lang::solana_program::system_instruction::transfer(
+                &ctx.accounts.vault.key(),
+                &ctx.accounts.publisher.key(),
+                claimable_amount,
+            ),
+            &[
+                ctx.accounts.vault.to_account_info(),
+                ctx.accounts.publisher.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+            signer_seeds,
+        )?;
+
+        ctx.accounts.earnings.claimable_amount = 0;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
 pub struct Claim<'info> {
+    #[account(
+        mut,
+        seeds = [b"vault", advertiser.key().as_ref(), ad.ad_id.as_ref()],
+        bump
+    )]
+     /// CHECK: vault PDA, seeds and bump are verified by the constraint above
+    pub vault: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"earnings", ad.key().as_ref(), publisher.key().as_ref()],
+        bump,
+        has_one = publisher
+    )]
+    pub earnings: Account<'info, EarningsRecord>,
+
+    #[account(
+        seeds = [b"ad", advertiser.key().as_ref(), ad.ad_id.as_ref()],
+        bump
+    )]
+    pub ad: Account<'info, Ad>,
+
+    /// CHECK: only for PDA seed
+    pub advertiser: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub publisher: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -202,7 +257,7 @@ pub struct RecordImpression<'info> {
 
 #[account]
 pub struct Ad {
-    ad_id: [u8; 32],
+    pub ad_id: [u8; 32],
     pub advertiser: Pubkey,
     pub authority: Pubkey,
     pub is_active: bool,

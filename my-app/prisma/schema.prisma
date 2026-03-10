@@ -63,6 +63,8 @@ model Click {
   publisher_id  String
   publisher_url String
   processed     Boolean  @default(false) 
+  claimed       Boolean @default(false) 
+  claimed_at  DateTime?
 }
 
 model EarningsRecord {
