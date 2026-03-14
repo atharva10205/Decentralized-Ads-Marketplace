@@ -59,9 +59,17 @@ export async function GET() {
     console.log("activewebsites:", active_websites);
 
 
-    return NextResponse.json({
-        active_websites,
-        totalImpressions: totalImpressions._sum.impression || 0,
-        totalEarnings: Number(totalEarnings.toFixed(4)) 
-    });
+    const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { accent: true }
+});
+
+console.log("user,user",user)
+
+return NextResponse.json({
+    active_websites,
+    totalImpressions: totalImpressions._sum.impression || 0,
+    totalEarnings: Number(totalEarnings.toFixed(4)),
+accent: user?.accent ?? '#FFFFFF'
+});
 }

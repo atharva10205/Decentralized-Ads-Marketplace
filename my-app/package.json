@@ -23,6 +23,7 @@
     "@tanstack/react-query-persist-client": "^5.90.22",
     "@upstash/redis": "^1.36.0",
     "bn.js": "^5.2.3",
+    "chart.js": "^4.5.1",
     "client-s3": "github:aws-sdk/client-s3",
     "dotenv": "^17.2.3",
     "i": "^0.3.7",

@@ -1,169 +1,232 @@
 'use client'
 
-import { Plus, Edit, Copy, Pause, Play, Trash2 } from 'lucide-react';
+import { Plus, BarChart3, Edit, Pause, Play, Trash2, RefreshCw } from 'lucide-react';
 import Sidebar from '../Componants/Sidebar';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+const alpha = (op: number) => `rgba(255,255,255,${op})`;
+
+type Campaign = {
+    id: string;
+    business_name: string;
+    destination_url: string;
+    status: boolean;
+    cost_per_click: number;
+    impression: number;
+    clicks: number;
+    Cost: number;
+    cpc: string;
+    spent: number;
+    percentUsed: number;
+};
 
 const Campaigns = () => {
-  const [campaigns, setCampaigns] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const activeTab = 'Campaigns';
+    const router = useRouter();
+    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [accent, setAccent] = useState('#10B981');
 
-  useEffect(() => {
-    const fetchCampaigns = async () => {
-      try {
-        const res = await fetch("/api/crud/Advertiser/Campaings");
-        const data = await res.json();
-        setCampaigns(data);
-      } catch (error) {
-        console.error("Error fetching campaigns:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    useEffect(() => {
+        const fetchCampaigns = async () => {
+            try {
+                const res = await fetch("/api/crud/Advertiser/Campaings");
+                const data = await res.json();
 
-    fetchCampaigns();
-  }, []);
+                setAccent(data.accent ?? '#10B981');
 
-  return (
-    <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
-      <Sidebar activeTab="Campaigns" />
+                const enriched = (Array.isArray(data) ? data : (data.campaigns ?? [])).map((c: any) => {
+                    const budget = Number(c.Cost ?? 0);
+                    const spent = (c.clicks ?? 0) * Number(c.cost_per_click ?? 0);
+                    const percentUsed = budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
+                    return {
+                        ...c,
+                        spent: parseFloat(spent.toFixed(6)),
+                        percentUsed,
+                        cpc: c.cost_per_click ? Number(c.cost_per_click).toFixed(6) : '0.000000',
+                    };
+                });
 
-      <main className="flex-1 p-8 overflow-auto">
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">Campaigns</h1>
-            <p className="text-gray-500">Manage all your advertising campaigns</p>
-          </div>
+                setCampaigns(enriched);
+            } catch (error) {
+                console.error("Error fetching campaigns:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-          <button className="group relative px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black overflow-hidden hover:shadow-2xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-300">
-            <span className="relative z-10 flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              New Campaign
-            </span>
-          </button>
-        </div>
+        fetchCampaigns();
+    }, []);
 
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#00FFA3] border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
+    return (
+        <div className="flex h-screen bg-[#0a0a0a] text-gray-300">
+            <Sidebar activeTab={activeTab} />
 
-        {!loading && campaigns.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-            <p className="text-lg mb-2">No campaigns found</p>
-            <p className="text-sm">Create your first campaign to get started</p>
-          </div>
-        )}
+            <main className="flex-1 p-8 overflow-y-auto">
+                <div className="max-w-6xl">
 
-        <div className="grid gap-6">
-          {campaigns.map((campaign) => {
-            const budget = campaign.Cost ?? 0;
-            const spent = (campaign.clicks ?? 0) * (campaign.cost_per_click ?? 0);
-            const percentUsed = budget > 0
-              ? Math.min(Math.round((spent / budget) * 100), 100)
-              : 0;
+                    {/* Header */}
+                    <div className="flex items-center font-mono justify-between mb-10">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-1 text-white tracking-tight">Campaigns</h1>
+                            <p className="text-gray-600 text-sm">Manage your advertising campaigns</p>
+                        </div>
 
-            const isActive = campaign.status === true || campaign.status === 'Active';
-
-            return (
-              <div
-                key={campaign.id}
-                className="group bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl overflow-hidden hover:border-gray-700 hover:shadow-xl hover:shadow-[#00FFA3]/5 transition-all duration-300"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold group-hover:text-[#00FFA3] transition-colors">
-                          {campaign.business_name}
-                        </h3>
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${isActive
-                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                              : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                            }`}
+                        <button
+                            onClick={() => router.push("/Advertiser-campaign")}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                            style={{ border: `1px solid ${alpha(0.18)}` }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.borderColor = accent;
+                                e.currentTarget.style.boxShadow = `0 0 18px ${accent}33`;
+                                e.currentTarget.style.color = accent;
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.borderColor = alpha(0.18);
+                                e.currentTarget.style.boxShadow = 'none';
+                                e.currentTarget.style.color = '';
+                            }}
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full mr-2 ${isActive ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
-                              }`}
-                          />
-                          {isActive ? 'Active' : 'Paused'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-1">
-                        url : {campaign.destination_url}
-                      </p>
+                            <Plus className="w-4 h-4" />
+                            New Campaign
+                        </button>
                     </div>
 
-                    <div className="flex gap-2">
-                      <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors">
-                        <Copy className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors">
-                        {isActive ? (
-                          <Pause className="w-4 h-4" />
-                        ) : (
-                          <Play className="w-4 h-4" />
-                        )}
-                      </button>
-                      <button className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
+                    {loading && (
+                        <div className="flex items-center justify-center py-24">
+                            <div
+                                className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
+                                style={{ borderColor: `${accent} transparent transparent transparent` }}
+                            />
+                        </div>
+                    )}
+                    {!loading && campaigns.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-24 text-gray-600 text-sm font-mono">
+                            <p className="mb-1">No campaigns found.</p>
+                            <p className="text-xs text-gray-700">Create your first campaign to get started.</p>
+                        </div>
+                    )}
 
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                      <p className="text-xs text-gray-500 mb-1">Budget</p>
-                      <p className="text-lg font-semibold">{budget} SOL</p>
-                    </div>
-                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                      <p className="text-xs text-gray-500 mb-1">Spent</p>
-                      <p className="text-lg font-semibold text-[#DC1FFF]">
-                        {spent} SOL
-                      </p>
-                    </div>
-                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                      <p className="text-xs text-gray-500 mb-1">Clicks</p>
-                      <p className="text-lg font-semibold">{campaign.clicks ?? 0}</p>
-                    </div>
-                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                      <p className="text-xs text-gray-500 mb-1">CPC</p>
-                      <p className="text-lg font-semibold">
-                        {campaign.cost_per_click ?? '—'} SOL
-                      </p>
-                    </div>
-                    <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                      <p className="text-xs text-gray-500 mb-1">Impressions</p>
-                      <p className="text-lg font-semibold text-[#00FFA3]">
-                        {campaign.impression ?? 0}
-                      </p>
-                    </div>
-                  </div>
+                    {/* Campaign Cards */}
+                    <div className="grid gap-4">
+                        {campaigns.map((campaign) => {
+                            const isActive = campaign.status === true;
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] transition-all duration-500"
-                        style={{ width: `${percentUsed}%` }}
-                      />
+                            return (
+                                <div
+                                    key={campaign.id}
+                                    className="bg-[#111111] rounded-xl overflow-hidden hover:-translate-y-0.5 transition-all duration-200"
+                                    style={{ border: `1px solid ${alpha(0.08)}` }}
+                                    onMouseEnter={e => {
+                                        (e.currentTarget as HTMLElement).style.borderColor = accent;
+                                        (e.currentTarget as HTMLElement).style.boxShadow = `0 0 32px ${accent}1a`;
+                                    }}
+                                    onMouseLeave={e => {
+                                        (e.currentTarget as HTMLElement).style.borderColor = alpha(0.08);
+                                        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                                    }}
+                                >
+                                    <div className="p-6">
+
+                                        <div className="flex items-start justify-between mb-6">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-1.5">
+                                                    <h3 className="text-lg font-semibold text-white tracking-tight font-mono">
+                                                        {campaign.business_name}
+                                                    </h3>
+                                                    <span className={`text-xs px-2 py-0.5 rounded font-mono tracking-wide border ${
+                                                        isActive
+                                                            ? 'bg-gray-800 text-gray-300 border-gray-700'
+                                                            : 'bg-[#1a1a1a] text-gray-500 border-gray-800'
+                                                    }`}>
+                                                        {isActive && (
+                                                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 mr-1.5 align-middle animate-pulse" />
+                                                        )}
+                                                        {isActive ? 'ACTIVE' : 'PAUSED'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-600 font-mono">
+                                                    {campaign.destination_url}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => router.push(`/dashboard/advertiser/campaigns/${campaign.id}`)}
+                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
+                                                    title="View Stats"
+                                                >
+                                                    <BarChart3 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
+                                                    title="Edit"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
+                                                    title={isActive ? 'Pause' : 'Resume'}
+                                                >
+                                                    {isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                                </button>
+                                                <button
+                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-red-400 hover:border-red-900/60 transition-all duration-150"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                                            {[
+                                                { label: 'Budget',      value: `${Number(campaign.Cost ?? 0).toFixed(4)} SOL`, accentColor: false },
+                                                { label: 'Spent',       value: `${campaign.spent} SOL`,                        accentColor: true  },
+                                                { label: 'Clicks',      value: (campaign.clicks ?? 0).toLocaleString(),        accentColor: false },
+                                                { label: 'CPC',         value: `${campaign.cpc} SOL`,                          accentColor: false },
+                                                { label: 'Impressions', value: (campaign.impression ?? 0).toLocaleString(),    accentColor: false },
+                                            ].map((metric) => (
+                                                <div key={metric.label} className="bg-[#0d0d0d] border border-gray-800/50 p-4 rounded-lg">
+                                                    <p className="text-xs text-gray-600 uppercase tracking-widest mb-1.5 font-mono">{metric.label}</p>
+                                                    <p
+                                                        className="text-base font-semibold font-mono tabular-nums"
+                                                        style={{ color: metric.accentColor ? accent : undefined }}
+                                                    >
+                                                        {metric.value}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full transition-all duration-700"
+                                                    style={{
+                                                        width: `${campaign.percentUsed}%`,
+                                                        background: campaign.percentUsed > 85
+                                                            ? '#ef4444'
+                                                            : accent,
+                                                    }}
+                                                />
+                                            </div>
+                                            <span className="text-xs text-gray-600 font-mono w-16 text-right tabular-nums">
+                                                {campaign.percentUsed}% used
+                                            </span>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <span className="text-sm text-gray-400 w-16 text-right">
-                      {percentUsed}% used
-                    </span>
-                  </div>
+
                 </div>
-              </div>
-            );
-          })}
+            </main>
         </div>
-      </main>
-    </div>
-  );
+    );
 };
 
 export default Campaigns;

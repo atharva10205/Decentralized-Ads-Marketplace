@@ -10,8 +10,7 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const [publishers] = await Promise.all([
-
+        const [publishers, user] = await Promise.all([
             prisma.publisher.findMany({
                 where: { email: session.user.email },
                 select: {
@@ -21,11 +20,16 @@ export async function GET() {
                     status: true
                 }
             }),
-
+            prisma.user.findUnique({
+                where: { email: session.user.email },
+                select: { accent: true }
+            })
         ]);
 
+        const accent = user?.accent ?? "#10B981";
+
         if (publishers.length === 0) {
-            return NextResponse.json([]);
+            return NextResponse.json({ sites: [], accent });
         }
 
         const publisherIds = publishers.map(p => p.id);
@@ -56,7 +60,8 @@ export async function GET() {
                 publisher_id: true,
                 publisher_url: true
             }
-        })
+        });
+
         const adIds = [...new Set(allClicks.map(c => c.ad_id))];
 
         const ads = await prisma.ad.findMany({
@@ -80,7 +85,7 @@ export async function GET() {
             const cpc = cpcMap.get(click.ad_id) ?? 0;
             const currentEarnings = earningsMap.get(key) ?? 0;
             earningsMap.set(key, currentEarnings + cpc);
-        })
+        });
 
         const statusMap = new Map(
             publishers.map(p => [
@@ -103,7 +108,7 @@ export async function GET() {
             ])
         );
 
-        const merged = publishers.map(p => {
+        const sites = publishers.map(p => {
             const key = `${p.id}|${p.website_url}`;
             return {
                 publisher_id: p.id,
@@ -116,8 +121,7 @@ export async function GET() {
             };
         });
 
-
-        return NextResponse.json(merged);
+        return NextResponse.json({ sites, accent });
 
     } catch (error) {
         console.error("Error in GET /api/publisher/stats:", error);

@@ -22,9 +22,11 @@ export const authOptions = {
         create: {
           name: profile.name ?? "",
           email: profile.email,
+          image: profile.picture ?? "",
         },
         update: {
           name: profile.name ?? "",
+          image: profile.picture ?? "",
         },
       })
 
@@ -40,13 +42,15 @@ export const authOptions = {
           },
           select: {
             id: true,
-            role: true
+            role: true,
+            image: true,  
           }
         })
 
         if (user) {
           token.role = user.role
           token.userId = user.id
+           token.picture = user.image 
         }
         return token
       }
@@ -55,6 +59,7 @@ export const authOptions = {
       if (session.user) {
         session.user.role = token.role as string | null
         session.user.id = token.userId as string
+         session.user.image = token.picture as string 
       }
       return session
     },

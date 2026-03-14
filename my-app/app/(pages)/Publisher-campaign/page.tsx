@@ -1,8 +1,9 @@
 'use client'
 
-import { HelpCircle, User,Globe, Wallet } from 'lucide-react';
+import { HelpCircle, User, Globe, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+
 
 export default function WebsiteRegistrationForm() {
     const [websiteName, setWebsiteName] = useState("");
@@ -13,8 +14,22 @@ export default function WebsiteRegistrationForm() {
     const [selectedNiches, setSelectedNiches] = useState([]);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [hasExistingWallet, setHasExistingWallet] = useState(false);
+
 
     const router = useRouter();
+
+    useEffect(() => {
+        const get_wallet_address = async () => {
+            const res = await fetch("/api/crud/Publisher-campaign");
+            const data = await res.json();
+            if (data?.address?.wallet_address) {
+                setWalletAddress(data.address.wallet_address);
+                setHasExistingWallet(true);
+            }
+        }
+        get_wallet_address();
+    }, [])
 
     useEffect(() => {
         setErrors({});
@@ -70,44 +85,45 @@ export default function WebsiteRegistrationForm() {
 
         return newErrors;
     };
-const handleSubmit = async () => {
-    const newErrors = validateForm();
-    setErrors(newErrors);
 
-    if (Object.keys(newErrors).length !== 0) return;
+    const handleSubmit = async () => {
+        const newErrors = validateForm();
+        setErrors(newErrors);
 
-    setLoading(true);
+        if (Object.keys(newErrors).length !== 0) return;
 
-    try {
-        const res = await fetch("/api/crud/Publisher-campaign", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                websiteName,
-                websiteURL,
-                walletAddress,
-                keywords,
-                selectedNiches,
-            }),
-        });
+        setLoading(true);
 
-        if (!res.ok) {
-            throw new Error("Request failed");
-        }
+        try {
+            const res = await fetch("/api/crud/Publisher-campaign", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    websiteName,
+                    websiteURL,
+                    walletAddress,
+                    keywords,
+                    selectedNiches,
+                }),
+            });
 
-        const data = await res.json();
+            if (!res.ok) {
+                throw new Error("Request failed");
+            }
 
-        if (data.success === true) {
+            const data = await res.json();
+
+            if (data.success === true) {
+                setLoading(false);
+                router.push("Publisher/Websites")
+            }
+        } catch (err) {
+            console.error(err);
             setLoading(false);
-            router.push("Publisher/Websites")
         }
-    } catch (err) {
-        console.error(err);
-        setLoading(false); 
-    }
-};
+    };
 
     return (
         <>
@@ -119,7 +135,7 @@ const handleSubmit = async () => {
                     </div>
                 </div>
             )}
-            
+
             <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] font-sans">
                 <header className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border-b border-gray-800/50">
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -154,7 +170,7 @@ const handleSubmit = async () => {
                                 <div className="p-8">
                                     <div className="mb-8">
                                         <div className="flex items-center text-sm text-gray-500 mb-3">
-                                          
+
                                             <span className="font-medium text-[#00FFA3]">Website Details</span>
                                         </div>
                                         <h1 className="text-2xl font-semibold text-gray-200 mb-3">
@@ -165,7 +181,6 @@ const handleSubmit = async () => {
                                         </p>
                                     </div>
 
-                                    {/* Website Name */}
                                     <div className="mb-8">
                                         <label className="block text-lg font-semibold text-gray-200 mb-4">
                                             Website Name
@@ -189,7 +204,6 @@ const handleSubmit = async () => {
                                         </div>
                                     </div>
 
-                                    {/* Website URL */}
                                     <div className="mb-8">
                                         <label className="block text-lg font-semibold text-gray-200 mb-4">
                                             Website URL / Domain
@@ -215,7 +229,6 @@ const handleSubmit = async () => {
                                         </div>
                                     </div>
 
-                                    {/* Wallet Address */}
                                     <div className="mb-10">
                                         <label className="block text-lg font-semibold text-gray-200 mb-2">
                                             Wallet Address
@@ -230,14 +243,24 @@ const handleSubmit = async () => {
                                                 value={walletAddress}
                                                 onChange={(e) => setWalletAddress(e.target.value)}
                                                 placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
-                                                className={`w-full pl-12 pr-4 py-3.5 rounded-lg outline-none transition-all border-2 bg-[#0a0a0a] text-gray-200 placeholder-gray-600 font-mono text-sm
-                                                    ${errors.walletAddress
-                                                        ? "border-red-500/50"
-                                                        : "border-gray-800/50 focus:border-[#00FFA3] focus:shadow-lg focus:shadow-[#00FFA3]/10"
+                                                disabled={hasExistingWallet}
+                                                className={`w-full pl-12 pr-4 py-3.5 rounded-lg outline-none transition-all border-2 bg-[#0a0a0a] text-gray-200 placeholder-gray-600 font-mono text-sm ${hasExistingWallet
+                                                    ? 'opacity-50 cursor-not-allowed border-gray-800/50'
+                                                    : errors.walletAddress
+                                                        ? 'border-red-500/50'
+                                                        : 'border-gray-800/50 focus:border-[#00FFA3] focus:shadow-lg focus:shadow-[#00FFA3]/10'
                                                     }`}
                                             />
                                             {errors.walletAddress && (
                                                 <p className="mt-2 text-sm text-red-400">{errors.walletAddress}</p>
+                                            )}
+                                            {hasExistingWallet && (
+                                                <p className="mt-2 text-sm text-gray-500">
+                                                    🔒 Wallet address is locked. You can change it in{" "}
+                                                    <span onClick={() => router.push("/Publisher/Settings")} className="text-[#00FFA3] cursor-pointer hover:underline">
+                                                        Settings
+                                                    </span>
+                                                </p>
                                             )}
                                         </div>
                                     </div>
@@ -446,11 +469,10 @@ const handleSubmit = async () => {
                                     </div>
                                 </div>
 
-                                {/* Footer */}
                                 <div className="px-8 py-6 bg-[#0a0a0a] border-t border-gray-800/50">
                                     <div className="flex items-center justify-between">
                                         <button
-                                        onClick={()=>{router.push("/Publisher/Websites")}}
+                                            onClick={() => { router.push("/Publisher/Websites") }}
                                             className="px-6 py-3 border-2 border-gray-800/50 text-gray-300 font-medium rounded-lg hover:bg-[#161616]/50 hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00FFA3] transition-all"
                                         >
                                             Cancel

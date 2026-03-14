@@ -22,7 +22,7 @@ export async function POST(req: Request) {
             Tags: cleanNiches,
             keywords: keywords,
             wallet_address: walletAddress,
-            email : session.user?.email
+            email: session.user?.email
         }
     })
 
@@ -30,4 +30,22 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true })
     }
 
+}
+
+export async function GET(req: Request) {
+    const session = await auth()
+    if (!session || !session.user?.email) {
+        return;
+    }
+    const address = await prisma.publisher.findFirst({
+        where: {
+            email: session.user.email
+        },
+        select: {
+            wallet_address: true
+        }
+    })
+    if (address) {
+        return NextResponse.json({ address })
+    }
 }

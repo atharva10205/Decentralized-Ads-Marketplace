@@ -1,15 +1,18 @@
 'use client'
 
-import { Plus, BarChart3, Code, Copy, Edit, Link, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, BarChart3, Code, Copy, Edit, Link, Trash2, RefreshCw, Check } from 'lucide-react';
 import Sidebar from '../sidebar/sidebar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const alpha  = (op: number) => `rgba(255,255,255,${op})`;
 
 const Websites = () => {
     const activeTab = 'Websites';
     const router = useRouter();
     const [websites, setWebsites] = useState([]);
+    const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+    const [accent, setAccent] = useState('#10B981');
 
     useEffect(() => {
         const Get_websites = async () => {
@@ -17,21 +20,22 @@ const Websites = () => {
                 const res = await fetch("/api/crud/Publisher/Websites");
                 const data = await res.json();
 
-                const websitesWithMetrics = data.map(site => ({
+                setAccent(data.accent ?? '#10B981');
+
+                const websitesWithMetrics = (data.sites ?? []).map(site => ({
                     ...site,
                     ctr: site.impressions > 0
                         ? ((site.clicks / site.impressions) * 100).toFixed(2)
                         : '0.00',
-                    formattedEarnings: site.earnings 
+                    formattedEarnings: site.earnings
                         ? `${Number(site.earnings).toFixed(4)} SOL`
-                        : '$0.0000',
+                        : '0.0000 SOL',
                     rpm: site.impressions > 0
                         ? ((site.earnings / site.impressions) * 1000).toFixed(4)
                         : '0.0000'
                 }));
 
                 setWebsites(websitesWithMetrics);
-                console.log("mergedData", websitesWithMetrics);
             } catch (error) {
                 console.error("Error fetching websites:", error);
             }
@@ -40,126 +44,190 @@ const Websites = () => {
         Get_websites();
     }, []);
 
+    const handleCopy = (publisherUrl: string) => {
+        const code = `<div id="my-widget"></div>\n<script src="http://localhost:3000/my-widget.js" data-id="${publisherUrl}"></script>`;
+        navigator.clipboard.writeText(code);
+        setCopiedUrl(publisherUrl);
+        setTimeout(() => setCopiedUrl(null), 2000);
+    };
+
     return (
-        <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
+        <div className="flex h-screen bg-[#0a0a0a] text-gray-300">
             <Sidebar activeTab={activeTab} />
 
             <main className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-6xl">
-                    <div className="flex items-center justify-between mb-10">
+
+                    {/* Header */}
+                    <div className="flex items-center font-mono justify-between mb-10">
                         <div>
-                            <h1 className="text-3xl font-bold mb-1 bg-white bg-clip-text text-transparent">Websites</h1>
-                            <p className="text-gray-500">Manage your publishing properties</p>
+                            <h1 className="text-3xl font-bold mb-1 text-white tracking-tight">Websites</h1>
+                            <p className="text-gray-600 text-sm">Manage your publishing properties</p>
                         </div>
-                        <button className="group relative px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black overflow-hidden hover:shadow-2xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-300">
-                            <span
-                                onClick={() => { router.push("/Publisher-campaign") }}
-                                className="relative cursor-pointer z-10 flex items-center gap-2">
-                                <Plus className="w-5 h-5" />
-                                Add Website
-                            </span>
+
+                        <button
+                            onClick={() => router.push("/Publisher-campaign")}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                            style={{ border: `1px solid ${alpha(0.18)}` }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.borderColor = accent;
+                                e.currentTarget.style.boxShadow = `0 0 18px ${accent}33`;
+                                e.currentTarget.style.color = accent;
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.borderColor = alpha(0.18);
+                                e.currentTarget.style.boxShadow = 'none';
+                                e.currentTarget.style.color = '';
+                            }}
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Website
                         </button>
                     </div>
 
-                    <div className="grid gap-6">
+                    {/* Website Cards */}
+                    <div className="grid gap-4">
                         {websites.length === 0 ? (
-                            <div className="text-center text-gray-500 py-10">No websites Found</div>
+                            <div className="flex items-center justify-center py-24 text-gray-600 text-sm">
+                                No websites found.
+                            </div>
                         ) : (
-                            websites.map((site, idx) => (
-                                <div key={site.website_name} className="group bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl overflow-hidden hover:border-gray-700 hover:shadow-xl hover:shadow-[#00FFA3]/5 transition-all duration-300">
-                                    <div className="p-6">
-                                        <div className="flex items-start justify-between mb-6">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <h3 className="text-xl font-semibold group-hover:text-[#00FFA3] transition-colors">{site.website_name}</h3>
-                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${site.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${site.status === 'ACTIVE' ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
-                                                        {site.status}
-                                                    </span>
+                            websites.map((site) => {
+                                const isCopied = copiedUrl === site.publisher_url;
+
+                                return (
+                                    <div
+                                        key={site.website_name}
+                                        className="bg-[#111111] rounded-xl overflow-hidden hover:-translate-y-0.5 transition-all duration-200"
+                                        style={{ border: `1px solid ${alpha(0.08)}` }}
+                                        onMouseEnter={e => {
+                                            (e.currentTarget as HTMLElement).style.borderColor = accent;
+                                            (e.currentTarget as HTMLElement).style.boxShadow = `0 0 32px ${accent}1a`;
+                                        }}
+                                        onMouseLeave={e => {
+                                            (e.currentTarget as HTMLElement).style.borderColor = alpha(0.08);
+                                            (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                                        }}
+                                    >
+                                        <div className="p-6">
+
+                                            {/* Top Row: Name + Actions */}
+                                            <div className="flex items-start justify-between mb-6">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-1.5">
+                                                        <h3 className="text-lg font-semibold text-white tracking-tight">{site.website_name}</h3>
+                                                        <span className={`text-xs px-2 py-0.5 rounded font-mono tracking-wide border ${
+                                                            site.status === 'ACTIVE'
+                                                                ? 'bg-gray-800 text-gray-300 border-gray-700'
+                                                                : 'bg-[#1a1a1a] text-gray-500 border-gray-800'
+                                                        }`}>
+                                                            {site.status === 'ACTIVE' && (
+                                                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 mr-1.5 align-middle animate-pulse" />
+                                                            )}
+                                                            {site.status}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 flex items-center gap-1.5 font-mono">
+                                                        <Link className="w-3.5 h-3.5" />
+                                                        {site.publisher_url}
+                                                    </p>
                                                 </div>
-                                                <p className="text-sm text-gray-500 flex items-center gap-2">
-                                                    <Link className="w-4 h-4" />
-                                                    {site.publisher_url}
-                                                </p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                {site.status !== 'REVIEW' && (
-                                                    <>
-                                                        <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors" title="Get Code">
-                                                            <Code className="w-4 h-4" />
+
+                                                {/* Action Buttons */}
+                                                <div className="flex gap-2">
+                                                    {site.status !== 'REVIEW' && (
+                                                        <>
+                                                            <button className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150" title="Get Code">
+                                                                <Code className="w-4 h-4" />
+                                                            </button>
+                                                            <button className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150" title="Edit">
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                            <button className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150" title="View Stats">
+                                                                <BarChart3 className="w-4 h-4" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {site.status === 'REVIEW' && (
+                                                        <button className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150" title="Refresh">
+                                                            <RefreshCw className="w-4 h-4" />
                                                         </button>
-                                                        <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors" title="Edit">
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors" title="View Stats">
-                                                            <BarChart3 className="w-4 h-4" />
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {site.status === 'REVIEW' && (
-                                                    <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors" title="Refresh">
-                                                        <RefreshCw className="w-4 h-4" />
+                                                    )}
+                                                    <button className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-red-400 hover:border-red-900/60 transition-all duration-150" title="Remove">
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
-                                                )}
-                                                <button className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors" title="Remove">
-                                                    <Trash2 className="w-4 h-4" />
+                                                </div>
+                                            </div>
+
+                                            {/* Metrics Row */}
+                                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                                                {[
+                                                    { label: 'Impressions', value: site.status === 'REVIEW' ? '0' : site.impressions.toLocaleString(), accent: false },
+                                                    { label: 'Clicks',      value: site.status === 'REVIEW' ? '0' : site.clicks.toLocaleString(),      accent: false },
+                                                    { label: 'CTR',         value: site.status === 'REVIEW' ? '0%' : `${site.ctr}%`,                   accent: false },
+                                                    { label: 'Earnings',    value: site.status === 'REVIEW' ? '0.0000 SOL' : site.formattedEarnings,   accent: true  },
+                                                    { label: 'RPM',         value: site.status === 'REVIEW' ? '0.0000 SOL' : `${site.rpm} SOL`,        accent: false },
+                                                ].map((metric) => (
+                                                    <div key={metric.label} className="bg-[#0d0d0d] border border-gray-800/50 p-4 rounded-lg">
+                                                        <p className="text-xs text-gray-600 uppercase tracking-widest mb-1.5">{metric.label}</p>
+                                                        <p
+                                                            className="text-base font-semibold font-mono tabular-nums"
+                                                            style={{ color: metric.accent ? accent : undefined }}
+                                                        >
+                                                            {metric.value}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Ad Code Block */}
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs text-gray-600 uppercase tracking-widest">Ad Code Integration</span>
+
+                                                <button
+                                                    onClick={() => handleCopy(site.publisher_url)}
+                                                    className="flex items-center gap-1.5 text-xs font-mono transition-all duration-200 text-gray-500 hover:text-gray-200"
+                                                >
+                                                    <span className={`flex items-center gap-1.5 transition-all duration-200 ${isCopied ? 'scale-105' : 'scale-100'}`}>
+                                                        {isCopied ? (
+                                                            <>
+                                                                <Check className="w-3 h-3 text-gray-300" />
+                                                                <span className="text-gray-300">Copied</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Copy className="w-3 h-3" />
+                                                                Copy Code
+                                                            </>
+                                                        )}
+                                                    </span>
                                                 </button>
                                             </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                <p className="text-xs text-gray-500 mb-1">Impressions</p>
-                                                <p className="text-lg font-semibold">{site.status === 'REVIEW' ? 0 : site.impressions.toLocaleString()}</p>
-                                            </div>
-                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                <p className="text-xs text-gray-500 mb-1">Clicks</p>
-                                                <p className="text-lg font-semibold">{site.status === 'REVIEW' ? 0 : site.clicks.toLocaleString()}</p>
-                                            </div>
-                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                <p className="text-xs text-gray-500 mb-1">CTR</p>
-                                                <p className="text-lg font-semibold">{site.status === 'REVIEW' ? '0%' : `${site.ctr}%`}</p>
-                                            </div>
-                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                <p className="text-xs text-gray-500 mb-1">Earnings</p>
-                                                <p className="text-lg font-semibold text-[#00FFA3]">
-                                                    {site.status === 'REVIEW' ? '0.0000 SOL' : site.formattedEarnings }
-                                                </p>
-                                            </div>
-                                            <div className="bg-[#0a0a0a] p-4 rounded-xl">
-                                                <p className="text-xs text-gray-500 mb-1">RPM</p>
-                                                <p className="text-lg font-semibold">
-                                                    {site.status === 'REVIEW' ? '0.0000 SOL' : `${site.rpm} SOL`}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm mb-4 text-gray-500">Ad Code Integration</span>
-                                            <button
-                                                onClick={() => {
-                                                    const code = `<div id="my-widget"></div>\n<script src="http://localhost:3000/my-widget.js" data-id="${site.publisher_url}"></script>`;
-                                                    navigator.clipboard.writeText(code);
+                                            <div
+                                                className="bg-[#0d0d0d] rounded-lg p-4 flex flex-col gap-1.5 transition-all duration-300"
+                                                style={{
+                                                    border: `1px solid ${isCopied ? alpha(0.35) : alpha(0.06)}`,
+                                                    boxShadow: isCopied ? `0 0 16px ${alpha(0.08)}` : 'none',
                                                 }}
-                                                className="text-xs cursor-pointer text-[#00FFA3] hover:text-[#00FFA3]/80 transition-colors flex items-center gap-1"
                                             >
-                                                <Copy className="w-3 h-3 cursor-pointer" />
-                                                Copy Code
-                                            </button>
-                                        </div>
-                                        <div className='flex rounded-xl p-5 border border-gray-800 flex-col gap-1'>
-                                            <code className="text-xs text-gray-400 font-mono">
-                                                &lt;div id="my-widget"&gt;&lt;/div&gt;&#10;
-                                            </code>
-                                            <code className="text-xs text-gray-400 font-mono">
-                                                &lt;script src="http://localhost:3000/my-widget.js" data-id="{site.publisher_url}"&gt;&lt;/script&gt;
-                                            </code>
+                                                <code className="text-xs font-mono leading-relaxed text-gray-500">
+                                                    &lt;div id="my-widget"&gt;&lt;/div&gt;
+                                                </code>
+                                                <code className="text-xs font-mono leading-relaxed">
+                                                    <span className="text-gray-500">&lt;script src="http://localhost:3000/my-widget.js" data-id="</span>
+                                                    <span style={{ color: accent }}>{site.publisher_url}</span>
+                                                    <span className="text-gray-500">"&gt;&lt;/script&gt;</span>
+                                                </code>
+                                            </div>
+
                                         </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
+
                 </div>
             </main>
         </div>

@@ -13,6 +13,8 @@ model User {
   name       String?
   created_at DateTime @default(now())
   role       String?
+  image      String?
+  accent String? @default("#FFFFFF")
 }
 
 model Ad {
@@ -26,45 +28,48 @@ model Ad {
   keywords        String[]
   wallet_address  String?
   cost_per_click  Decimal? @db.Decimal(18, 9)
-  Clicks   Int?
-  Cost     Decimal? @db.Decimal(18, 9)
+  Clicks          Int?
+  Cost            Decimal? @db.Decimal(18, 9)
   imageUrl        String?
   created_at      DateTime @default(now())
-  updated_at      DateTime  @default(now()) @updatedAt
-  impression Int?
-  status   Boolean  @default(true)
+  updated_at      DateTime @default(now()) @updatedAt
+  impression      Int?
+  status          Boolean  @default(true)
 }
 
 model Publisher {
   id             String   @id @default(uuid())
-  email          String?  
+  email          String?
   website_name   String?
   website_url    String?  @unique
   Tags           String[]
   keywords       String[]
   wallet_address String?
-  status         String? @default("INACTIVE")
+  status         String?  @default("INACTIVE")
   created_at     DateTime @default(now())
-  updated_at     DateTime  @default(now()) @updatedAt
+  updated_at     DateTime @default(now()) @updatedAt
 }
 
 model Impression {
-  id          String   @id @default(uuid())
-  ad_id       String
-  publisher_id String
-  publisher_url String
-  impression Int
-
-  @@unique([ad_id, publisher_id,publisher_url])
-}
-model Click {
   id            String   @id @default(uuid())
   ad_id         String
   publisher_id  String
   publisher_url String
-  processed     Boolean  @default(false) 
-  claimed       Boolean @default(false) 
-  claimed_at  DateTime?
+  impression    Int
+  created_at    DateTime @default(now())
+
+  @@unique([ad_id, publisher_id, publisher_url])
+}
+
+model Click {
+  id            String    @id @default(uuid())
+  ad_id         String
+  publisher_id  String
+  publisher_url String
+  processed     Boolean   @default(false)
+  claimed       Boolean   @default(false)
+  claimed_at    DateTime?
+  created_at    DateTime  @default(now())
 }
 
 model EarningsRecord {

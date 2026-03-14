@@ -16,10 +16,16 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const publisher = await prisma.publisher.findFirst({
+   const [publisher, user_accent] = await Promise.all([
+    prisma.publisher.findFirst({
         where: { email: session.user.email },
         select: { wallet_address: true }
-    });
+    }),
+    prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { accent: true }
+    })
+]);
 
     const user = await prisma.publisher.findMany({
         where: { email: session.user.email },
@@ -153,8 +159,9 @@ export async function GET(req: Request) {
 
     console.log("transactions", transactionList)
 
-    return NextResponse.json({ publisher, earningsRecords, transactionList });
+    return NextResponse.json({ publisher, earningsRecords, transactionList, accent: user_accent?.accent ?? '#0010FF' });
 }
+
 export async function POST(req: Request) {
     const session = await auth();
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
