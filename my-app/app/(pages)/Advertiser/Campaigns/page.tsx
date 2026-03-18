@@ -1,7 +1,7 @@
 'use client'
 
 import { Plus, BarChart3, Edit, Pause, Play, Trash2, RefreshCw } from 'lucide-react';
-import Sidebar from '../Componants/Sidebar';
+import Sidebar from '../Sidebar/Sidebar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -135,11 +135,10 @@ const Campaigns = () => {
                                                     <h3 className="text-lg font-semibold text-white tracking-tight font-mono">
                                                         {campaign.business_name}
                                                     </h3>
-                                                    <span className={`text-xs px-2 py-0.5 rounded font-mono tracking-wide border ${
-                                                        isActive
+                                                    <span className={`text-xs px-2 py-0.5 rounded font-mono tracking-wide border ${isActive
                                                             ? 'bg-gray-800 text-gray-300 border-gray-700'
                                                             : 'bg-[#1a1a1a] text-gray-500 border-gray-800'
-                                                    }`}>
+                                                        }`}>
                                                         {isActive && (
                                                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 mr-1.5 align-middle animate-pulse" />
                                                         )}
@@ -166,6 +165,17 @@ const Campaigns = () => {
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button
+                                                    onClick={async () => {
+                                                        const newStatus = !isActive;
+                                                        await fetch("/api/crud/Advertiser/Campaings", {
+                                                            method: "PATCH",
+                                                            headers: { "content-type": "application/json" },
+                                                            body: JSON.stringify({ id: campaign.id, status: newStatus })
+                                                        });
+                                                        setCampaigns(prev =>
+                                                            prev.map(c => c.id === campaign.id ? { ...c, status: newStatus } : c)
+                                                        );
+                                                    }}
                                                     className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
                                                     title={isActive ? 'Pause' : 'Resume'}
                                                 >
@@ -182,11 +192,11 @@ const Campaigns = () => {
 
                                         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                                             {[
-                                                { label: 'Budget',      value: `${Number(campaign.Cost ?? 0).toFixed(4)} SOL`, accentColor: false },
-                                                { label: 'Spent',       value: `${campaign.spent} SOL`,                        accentColor: true  },
-                                                { label: 'Clicks',      value: (campaign.clicks ?? 0).toLocaleString(),        accentColor: false },
-                                                { label: 'CPC',         value: `${campaign.cpc} SOL`,                          accentColor: false },
-                                                { label: 'Impressions', value: (campaign.impression ?? 0).toLocaleString(),    accentColor: false },
+                                                { label: 'Budget', value: `${Number(campaign.Cost ?? 0).toFixed(4)} SOL`, accentColor: false },
+                                                { label: 'Spent', value: `${campaign.spent} SOL`, accentColor: true },
+                                                { label: 'Clicks', value: (campaign.clicks ?? 0).toLocaleString(), accentColor: false },
+                                                { label: 'CPC', value: `${campaign.cpc} SOL`, accentColor: false },
+                                                { label: 'Impressions', value: (campaign.impression ?? 0).toLocaleString(), accentColor: false },
                                             ].map((metric) => (
                                                 <div key={metric.label} className="bg-[#0d0d0d] border border-gray-800/50 p-4 rounded-lg">
                                                     <p className="text-xs text-gray-600 uppercase tracking-widest mb-1.5 font-mono">{metric.label}</p>

@@ -1,124 +1,326 @@
 'use client';
 
-import { Upload, Download, Copy, ArrowDownRight, ArrowUpRight, Send, ExternalLink } from 'lucide-react';
-import Sidebar from '../Componants/Sidebar';
+import { useEffect, useState, useCallback } from 'react';
+import { Copy, Check, Loader2, TrendingUp, RefreshCw, MousePointerClick, Wallet2, TrendingDown } from 'lucide-react';
+import Sidebar from '../Sidebar/Sidebar';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface AdTransaction {
+  id: string;
+  type: 'spend';
+  adTitle: string;
+  clicks: number;
+  cpc: string;
+  amount: string;
+  rawAmount: number;
+  date: string;
+  status: 'Active' | 'Inactive';
+}
+
+interface WalletData {
+  walletAddress: string | null;
+  availableBalance: number;
+  totalSpent: number;
+  totalClicks: number;
+  transactions: AdTransaction[];
+  accent: string; // ← from backend
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function timeAgo(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
+
+function shortenAddress(addr: string): string {
+  if (!addr || addr.length < 12) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-6)}`;
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const Wallet = () => {
   const activeTab = 'Wallet';
 
-  const transactions = [
-    { type: 'deposit', amount: '2.5 SOL', date: '2 hours ago', status: 'Completed', txHash: '5x7k...3mP9' },
-    { type: 'withdraw', amount: '0.8 SOL', date: '1 day ago', status: 'Completed', txHash: '9mK2...8nQ1' },
-    { type: 'spend', amount: '0.42 SOL', date: '2 days ago', status: 'Completed', txHash: '3pL5...7vR4' },
-    { type: 'deposit', amount: '1.0 SOL', date: '5 days ago', status: 'Completed', txHash: '8nM3...2kT6' },
-  ];
+  const [data, setData]             = useState<WalletData | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
+  const [copied, setCopied]         = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [accent, setAccent]         = useState('#ffffff');
+
+  // Derived color helpers — always in sync with accent state
+  const alpha  = (op: number) => `rgba(255,255,255,${op})`;
+  const hR     = parseInt(accent.slice(1, 3), 16);
+  const hG     = parseInt(accent.slice(3, 5), 16);
+  const hB     = parseInt(accent.slice(5, 7), 16);
+  const hAlpha = (op: number) => `rgba(${hR},${hG},${hB},${op})`;
+
+  const fetchWallet = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
+    try {
+      const res = await fetch('/api/crud/Advertiser/Wallet');
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error ?? 'Failed to fetch wallet data');
+      }
+      const json: WalletData = await res.json();
+      setData(json);
+      setAccent(json.accent ?? '#ffffff'); // ← set from backend
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchWallet(); }, [fetchWallet]);
+
+  const handleCopy = () => {
+    if (data?.walletAddress) {
+      navigator.clipboard.writeText(data.walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-[#0a0a0a] text-gray-200">
+        <Sidebar activeTab={activeTab} />
+        <main className="flex-1 p-8 overflow-y-auto flex flex-col gap-6">
+          <div className="h-10 w-48 bg-[#161616] rounded-xl animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[0,1,2].map(i => <div key={i} className="h-36 bg-[#111111] border border-gray-800/50 rounded-xl animate-pulse" />)}
+          </div>
+          <div className="h-96 bg-[#111111] border border-gray-800/50 rounded-xl animate-pulse" />
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen bg-[#0a0a0a] text-gray-200">
+        <Sidebar activeTab={activeTab} />
+        <main className="flex-1 p-8 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-400 text-sm mb-4">{error}</p>
+            <button
+              onClick={() => fetchWallet()}
+              className="px-5 py-2.5 rounded-xl bg-[#161616] border border-gray-800/60 text-gray-200 text-sm hover:border-gray-600 transition-all duration-150"
+            >
+              Try again
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
-      
+    <div className="flex h-screen bg-[#0a0a0a] text-gray-300">
       <Sidebar activeTab={activeTab} />
 
-      <main className="flex-1  p-8 overflow-y-auto">
-        
+      <main className="flex-1 p-8 overflow-y-auto">
+
+        {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-3xl font-bold mb-1">Wallet</h1>
-            <p className="text-gray-500">Manage your funds and transactions</p>
+            <h1 className="text-3xl font-bold mb-1 text-white tracking-tight">Wallet</h1>
+            <p className="text-gray-600 text-sm">Manage your funds and transactions</p>
           </div>
+          <button
+            onClick={() => fetchWallet(true)}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#161616] text-gray-200 text-sm font-semibold disabled:opacity-50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+            style={{ border: `1px solid ${alpha(0.18)}` }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = accent;
+              e.currentTarget.style.boxShadow = `0 0 18px ${hAlpha(0.2)}`;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = alpha(0.18);
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-8 rounded-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10 rounded-full blur-3xl" />
-            <div className="relative z-10">
-              <p className="text-sm text-gray-500 mb-2">Available Balance</p>
-              <p className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                3.82 SOL
-              </p>
-              <div className="flex gap-3">
-                <button className="flex-1 px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black flex items-center justify-center gap-2">
-                  <Upload className="w-4 h-4" />
-                  Deposit
-                </button>
-                <button className="flex-1 px-6 py-3 rounded-xl font-semibold bg-gray-800/50 hover:bg-gray-800 flex items-center justify-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Withdraw
-                </button>
-              </div>
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+
+          {/* Total Spent */}
+          <div
+            className="bg-[#111111] p-6 rounded-xl transition-all duration-200"
+            style={{ border: `1px solid ${alpha(0.08)}` }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = accent;
+              (e.currentTarget as HTMLElement).style.boxShadow = `0 0 28px ${hAlpha(0.1)}`;
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = alpha(0.08);
+              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+            }}
+          >
+            <div className="flex items-center gap-2 text-gray-600 text-xs uppercase tracking-widest mb-3">
+              <TrendingUp className="w-4 h-4" />
+              Total Spent
             </div>
+            <p className="text-3xl font-bold font-mono tabular-nums" style={{ color: accent }}>
+              {(data?.totalSpent ?? 0).toFixed(4)}
+              <span className="text-lg text-gray-500 ml-1.5">SOL</span>
+            </p>
           </div>
 
-          <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-8 rounded-2xl">
-            <p className="text-sm text-gray-500 mb-6">Wallet Address</p>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 bg-[#0a0a0a] p-4 rounded-xl font-mono text-sm break-all">
-                7xKj9mN3pL5vR8qT2wE4nM6kP9sL3vR8qT2
-              </div>
-              <button className="p-4 rounded-xl bg-gray-800/50 hover:bg-gray-800">
-                <Copy className="w-5 h-5" />
-              </button>
+          <div
+            className="bg-[#111111] p-6 rounded-xl transition-all duration-200"
+            style={{ border: `1px solid ${alpha(0.08)}` }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = accent;
+              (e.currentTarget as HTMLElement).style.boxShadow = `0 0 28px ${hAlpha(0.1)}`;
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = alpha(0.08);
+              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+            }}
+          >
+            <div className="flex items-center gap-2 text-gray-600 text-xs uppercase tracking-widest mb-3">
+              <TrendingDown className="w-4 h-4" />
+              Available Balance
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Total Deposited</p>
-                <p className="text-xl font-semibold text-green-400">+6.5 SOL</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Total Spent</p>
-                <p className="text-xl font-semibold text-red-400">-2.68 SOL</p>
-              </div>
-            </div>
+            <p className="text-3xl font-bold font-mono tabular-nums" style={{ color: accent }}>
+             {((data?.availableBalance ?? 0) / 1e9).toFixed(4)}
+              <span className="text-lg text-gray-500 ml-1.5">SOL</span>
+            </p>
           </div>
+
+          {/* Wallet Address */}
+          <div
+            className="bg-[#111111] p-6 rounded-xl transition-all duration-200"
+            style={{ border: `1px solid ${alpha(0.08)}` }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = accent;
+              (e.currentTarget as HTMLElement).style.boxShadow = `0 0 28px ${hAlpha(0.1)}`;
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.borderColor = alpha(0.08);
+              (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+            }}
+          >
+            <div className="flex items-center gap-2 text-gray-600 text-xs uppercase tracking-widest mb-3">
+              <Wallet2 className="w-4 h-4" />
+              Wallet Address
+            </div>
+            {data?.walletAddress ? (
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm flex-1 truncate" style={{ color: accent }} title={data.walletAddress}>
+                  {shortenAddress(data.walletAddress)}
+                </span>
+                <button
+                  onClick={handleCopy}
+                  className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150 flex-shrink-0"
+                >
+                  {copied ? <Check className="w-4 h-4 text-gray-300" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600 italic">No wallet linked</p>
+            )}
+          </div>
+
         </div>
 
-        {/* Transactions */}
-        <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl overflow-hidden">
-          <div className="p-6 border-b border-gray-800/50">
-            <h2 className="text-lg font-semibold mb-1">Transaction History</h2>
-            <p className="text-sm text-gray-500">View all your wallet transactions</p>
+        {/* Transaction History */}
+        <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
+
+          <div className="px-6 py-5 border-b border-gray-800/60">
+            <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-widest">Transaction History</h2>
+            <p className="text-xs text-gray-600 mt-0.5">Ad spend breakdown — Clicks × CPC per ad</p>
           </div>
 
-          <div className="divide-y divide-gray-800/50">
-            {transactions.map((tx, idx) => (
-              <div key={idx} className="p-6 hover:bg-[#161616]/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${
-                      tx.type === 'deposit' ? 'bg-green-500/10' :
-                      tx.type === 'withdraw' ? 'bg-red-500/10' :
-                      'bg-blue-500/10'
-                    }`}>
-                      {tx.type === 'deposit' && <ArrowDownRight className="w-5 h-5 text-green-400" />}
-                      {tx.type === 'withdraw' && <ArrowUpRight className="w-5 h-5 text-red-400" />}
-                      {tx.type === 'spend' && <Send className="w-5 h-5 text-blue-400" />}
-                    </div>
+          {!data?.transactions?.length ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-700">
+              <Loader2 className="w-8 h-8 mb-3 opacity-40" />
+              <p className="text-sm">No transactions yet</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-12 gap-4 px-6 py-3 text-xs text-gray-600 uppercase tracking-widest border-b border-gray-800/40">
+                <div className="col-span-4">Ad</div>
+                <div className="col-span-2 text-right">Clicks</div>
+                <div className="col-span-2 text-right">CPC</div>
+                <div className="col-span-2 text-right">Total</div>
+                <div className="col-span-2 text-right">Status</div>
+              </div>
 
-                    <div>
-                      <p className="font-semibold capitalize">{tx.type}</p>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span>{tx.date}</span>
-                        <span>•</span>
-                        <span className="font-mono">{tx.txHash}</span>
-                        <ExternalLink className="w-3 h-3" />
+              <div className="divide-y divide-gray-800/40">
+                {data.transactions.map((tx) => (
+                  <div key={tx.id} className="grid grid-cols-12 gap-4 px-6 py-5 items-center hover:bg-[#161616]/60 transition-colors duration-150">
+
+                    <div className="col-span-4 flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 flex-shrink-0">
+                        <MousePointerClick className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-200 truncate">{tx.adTitle}</p>
+                        <p className="text-xs text-gray-600 font-mono">{timeAgo(tx.date)}</p>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="text-right">
-                    <p className={`text-xl font-bold ${
-                      tx.type === 'deposit' ? 'text-green-400' : 'text-gray-200'
-                    }`}>
-                      {tx.type === 'deposit' ? '+' : '-'}{tx.amount}
-                    </p>
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
-                      {tx.status}
-                    </span>
+                    <div className="col-span-2 text-right">
+                      <span className="font-mono text-sm text-gray-300 tabular-nums">{tx.clicks.toLocaleString()}</span>
+                    </div>
+
+                    <div className="col-span-2 text-right">
+                      <span className="font-mono text-sm text-gray-500 tabular-nums">{tx.cpc} SOL</span>
+                    </div>
+
+                    <div className="col-span-2 text-right">
+                      <span className="font-mono text-sm font-semibold tabular-nums" style={{ color: accent }}>{tx.amount} SOL</span>
+                    </div>
+
+                    <div className="col-span-2 text-right">
+                      <span className={`text-xs px-2 py-0.5 rounded font-mono tracking-wide border ${
+                        tx.status === 'Active'
+                          ? 'bg-gray-800 text-gray-300 border-gray-700'
+                          : 'bg-[#1a1a1a] text-gray-500 border-gray-800'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </div>
+
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 border-t border-gray-800/60 bg-[#0d0d0d]">
+                <div className="col-span-4 text-xs text-gray-600 uppercase tracking-widest">Total</div>
+                <div className="col-span-2 text-right font-mono text-sm text-gray-300 tabular-nums">
+                  {(data.totalClicks ?? 0).toLocaleString()}
+                </div>
+                <div className="col-span-2" />
+                <div className="col-span-2 text-right font-mono text-sm font-bold tabular-nums" style={{ color: accent }}>
+                  {(data.totalSpent ?? 0).toFixed(6)} SOL
+                </div>
+                <div className="col-span-2" />
+              </div>
+            </>
+          )}
         </div>
 
       </main>

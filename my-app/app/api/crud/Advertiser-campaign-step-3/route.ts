@@ -9,6 +9,8 @@ export async function POST(req: Request) {
     console.log("publicKey:", publicKey);
     console.log("maximim_cost_per_bid:", maximim_cost_per_bid);
     console.log("click:", click);
+    const totalCost = new Prisma.Decimal(maximim_cost_per_bid).mul(new Prisma.Decimal(click));
+
 
     const res = await prisma.ad.update({
         where: {
@@ -18,8 +20,8 @@ export async function POST(req: Request) {
             wallet_address: publicKey,
             cost_per_click: new Prisma.Decimal(maximim_cost_per_bid),
             Clicks: Number(click),
-            Cost: new Prisma.Decimal(maximim_cost_per_bid)
-        .mul(new Prisma.Decimal(click)),
+            Cost: totalCost,
+            RemainingAmount: Math.round(totalCost.toNumber() * 1_000_000_000)
         }
     })
     return NextResponse.json({ success: true })

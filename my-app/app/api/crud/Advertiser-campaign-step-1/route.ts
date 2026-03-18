@@ -8,7 +8,7 @@ export async function POST(req: Request) {
         return;
     }
 
-    
+
 
 
     const { businessName, url } = await req.json();
@@ -16,12 +16,23 @@ export async function POST(req: Request) {
     console.log("businessName", businessName);
     console.log("url", url);
 
+    const existing = await prisma.ad.findFirst({
+        where: { destination_url: url }
+    });
+
+    if (existing) {
+        return NextResponse.json(
+            { error: "This website URL is already registered. Try a different one." },
+            { status: 409 }
+        );
+    }
+
     const ad = await prisma.ad.create({
         data: {
-            user_email:session.user.email, 
+            user_email: session.user.email,
             business_name: businessName,
             destination_url: url
         }
     })
-    return NextResponse.json({adID : ad.id})
+    return NextResponse.json({ adID: ad.id })
 }

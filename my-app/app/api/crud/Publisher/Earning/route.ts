@@ -42,7 +42,6 @@ export async function GET(req: Request) {
     const data = await prisma.click.findMany({
         where: {
             publisher_url: { in: websiteUrlMap },
-            processed: false,
             claimed: false
         },
         select: { ad_id: true, publisher_id: true }
@@ -183,11 +182,10 @@ export async function POST(req: Request) {
         .filter((url): url is string => url !== null);
 
     if (websiteUrlMap.length === 0) return NextResponse.json({ error: "No websites found" }, { status: 404 });
-
-    const data = await prisma.click.findMany({
-        where: { publisher_url: { in: websiteUrlMap }, processed: false },
-        select: { ad_id: true, publisher_id: true },
-    });
+const data = await prisma.click.findMany({
+    where: { publisher_url: { in: websiteUrlMap }, claimed: false },
+    select: { ad_id: true, publisher_id: true },
+});
 
     const adIdMap = data.map((w) => w.ad_id);
 
@@ -270,16 +268,15 @@ export async function POST(req: Request) {
         .map(r => r.ad);
 
     if (successfulAdIds.length > 0) {
-        await prisma.click.updateMany({
-            where: {
-                publisher_url: { in: websiteUrlMap },
-                ad_id: { in: successfulAdIds },
-                processed: false
-            },
-            data: { processed: true }
-        });
+       await prisma.click.updateMany({
+    where: {
+        publisher_url: { in: websiteUrlMap },
+        ad_id: { in: successfulAdIds },
+        claimed: false
+    },
+    data: { processed: true }
+});
     }
-
 
     return NextResponse.json({ results });
 }

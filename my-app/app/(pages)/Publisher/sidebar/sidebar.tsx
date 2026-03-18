@@ -98,9 +98,9 @@ const Sidebar = ({ activeTab }: SidebarProps) => {
             {publisherData?.image ? (
               <img src={publisherData.image} alt={publisherData.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-xs font-bold text-gray-300">
-                {publisherData?.name ? getInitials(publisherData.name) : '#'}
-              </span>
+              <div className="text-sm font-semibold text-white leading-tight overflow-x-auto scrollbar-none whitespace-nowrap">
+                {publisherData?.name ?? '—'}
+              </div>
             )}
           </div>
           <div className="min-w-0">

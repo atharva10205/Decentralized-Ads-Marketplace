@@ -75,3 +75,31 @@ export async function GET() {
         );
     }
 }
+
+export async function PATCH(req: Request) {
+    try {
+        const session = await auth();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { id, status } = await req.json();
+
+        const ad = await prisma.ad.findFirst({
+            where: { id, user_email: session.user.email }
+        });
+
+        if (!ad) {
+            return NextResponse.json({ error: "Not found" }, { status: 404 });
+        }
+
+        const updated = await prisma.ad.update({
+            where: { id },
+            data: { status }
+        });
+
+        return NextResponse.json({ success: true, status: updated.status });
+    } catch (error) {
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+}

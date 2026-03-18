@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-
 declare_id!("5AhkXaS77PEWP8pDdQx3SMDbEizqJFns6an8J42dXUuw");
 
 const SERVICE_FEE: &str = "C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz";
@@ -59,7 +58,6 @@ pub mod my_project {
                 ctx.accounts.vault.to_account_info(),
             ],
         )?;
-
         Ok(())
     }
 
@@ -130,6 +128,70 @@ pub mod my_project {
         ctx.accounts.earnings.claimable_amount = 0;
         Ok(())
     }
+
+    pub fn refund(ctx: Context<Refund>) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.advertiser_key.key(),
+            ctx.accounts.signer.key(),
+            AdError::Unauthorized
+        );
+
+        let advertiser_key = ctx.accounts.advertiser_key.key();
+        let ad_id = ctx.accounts.ad.ad_id;
+        let bump = ctx.bumps.vault;
+
+        let vault_seed: &[&[u8]] = &[b"vault", advertiser_key.as_ref(), ad_id.as_ref(), &[bump]];
+        let vault_lamports = ctx.accounts.vault.to_account_info().lamports();
+        let signer_seeds = &[vault_seed];
+
+        let rent = Rent::get()?;
+        let min_rent = rent.minimum_balance(0);
+        let withdraw_amount = vault_lamports.saturating_sub(min_rent);
+        require!(withdraw_amount > 0, AdError::InvalidAmount);
+
+        anchor_lang::solana_program::program::invoke_signed(
+            &anchor_lang::solana_program::system_instruction::transfer(
+                &ctx.accounts.vault.key(),
+                &ctx.accounts.advertiser_key.key(),
+                withdraw_amount,
+            ),
+            &[
+                ctx.accounts.vault.to_account_info(),
+                ctx.accounts.advertiser_key.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+            signer_seeds,
+        )?;
+
+        ctx.accounts.ad.is_active = false;
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct Refund<'info> {
+    #[account(
+        mut,
+        seeds = [b"vault", advertiser_key.key().as_ref(), ad.ad_id.as_ref()],
+        bump
+    )]
+    /// CHECK: vault PDA, seeds and bump verified by constraint above
+    pub vault: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"ad", advertiser_key.key().as_ref(), ad.ad_id.as_ref()],
+        bump
+    )]
+    pub ad: Account<'info, Ad>,
+
+    /// CHECK: only for PDA seed
+    pub advertiser_key: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -139,7 +201,7 @@ pub struct Claim<'info> {
         seeds = [b"vault", advertiser.key().as_ref(), ad.ad_id.as_ref()],
         bump
     )]
-     /// CHECK: vault PDA, seeds and bump are verified by the constraint above
+    /// CHECK: vault PDA, seeds and bump are verified by the constraint above
     pub vault: AccountInfo<'info>,
 
     #[account(

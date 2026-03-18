@@ -1,27 +1,31 @@
 'use client'
 
+import React, { useEffect } from 'react';
 import { BarChart3, ArrowDownRight, DollarSign, Download, TrendingUp, Pencil, Wallet, Clock, Hash } from 'lucide-react';
 import Sidebar from '../sidebar/sidebar';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from "next-auth/react";
-import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { IDL } from '@/lib/idl';
 import { adIdToBytes } from '@/lib/solana';
 import { useRouter } from 'next/navigation';
+
 const alpha = (op: number) => `rgba(255,255,255,${op})`;
-type Transaction = {
+
+type TxRecord = {
     ad_id: string;
     publisher_id: string;
     click_count: number;
     earnings: number;
     timestamp: string | null;
 };
+
 type Earnings_Data = {
     publisher: { wallet_address: string };
     earningsRecords: { publisher: string; ad: string; claimable_amount: number }[];
-    transactionList: Transaction[];
+    transactionList: TxRecord[];
     accent: string;
 }
 
@@ -40,11 +44,93 @@ const formatTimestamp = (ts: string | null) => {
     });
 };
 
+// ─── Loading Modal ────────────────────────────────────────────────────────────
+const WithdrawModal = ({ accent }: { accent: string }) => {
+    const r = parseInt(accent.slice(1, 3), 16);
+    const g = parseInt(accent.slice(3, 5), 16);
+    const b = parseInt(accent.slice(5, 7), 16);
+    const accentRgba = (op: number) => `rgba(${r},${g},${b},${op})`;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+        >
+            <div
+                className="relative flex flex-col items-center gap-6 px-12 py-10 rounded-2xl bg-[#111111]"
+                style={{
+                    border: `1px solid ${accentRgba(0.25)}`,
+                    boxShadow: `0 0 60px ${accentRgba(0.15)}`,
+                }}
+            >
+                {/* Spinner */}
+                <div
+                    className="w-12 h-12 rounded-full"
+                    style={{
+                        border: `3px solid ${accentRgba(0.15)}`,
+                        borderTopColor: accent,
+                        animation: 'spin 0.9s linear infinite',
+                    }}
+                />
+
+                {/* Text */}
+                <div className="text-center">
+                    <p className="text-white font-mono font-semibold text-base tracking-wide mb-1">
+                        Processing Withdrawal
+                    </p>
+                    <p className="text-gray-500 font-mono text-xs tracking-widest">
+                        Do not refresh the page
+                    </p>
+                </div>
+
+                {/* Animated dots */}
+                <div className="flex gap-1.5">
+                    {[0, 1, 2].map(i => (
+                        <div
+                            key={i}
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{
+                                background: accent,
+                                opacity: 0.8,
+                                animation: `pulse-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
+                            }}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes pulse-dot {
+                    0%, 100% { transform: scale(0.6); opacity: 0.3; }
+                    50% { transform: scale(1); opacity: 1; }
+                }
+            `}</style>
+        </div>
+    );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 const Earnings = () => {
     const { status } = useSession();
     const activeTab = 'Earnings';
     const wallet = useWallet();
     const router = useRouter();
+    const [withdrawing, setWithdrawing] = React.useState(false);
+
+    // Block accidental page refresh while withdrawing
+    useEffect(() => {
+        if (!withdrawing) return;
+        const handler = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [withdrawing]);
 
     const fetchquery = useQuery({
         queryKey: ['earnings'],
@@ -64,57 +150,77 @@ const Earnings = () => {
     const totalEarned = transactionList.reduce((sum, tx) => sum + tx.earnings, 0);
 
     const Withdraw_BTN = async () => {
-        const claimedAdIds: string[] = [];
         if (!wallet.publicKey || !wallet.signTransaction) {
             alert("Please connect your wallet first");
             return;
         }
+        setWithdrawing(true);
         try {
             const res = await fetch("/api/crud/Publisher/Earning", { method: "POST" });
             const data = await res.json();
+            console.log("POST response:", data);
+
             const connection = new Connection("https://api.devnet.solana.com", "confirmed");
             const provider = new AnchorProvider(connection, wallet as any, {});
             const program = new Program(IDL as any, provider);
+
             const uniqueResults = data.results.filter(
-                (result: any, index: number, self: any[]) =>
-                    result.success && self.findIndex((r: any) => r.ad === result.ad) === index
+                (result: any, index: number, self: any[]) => result.success && self.findIndex((r: any) => r.ad === result.ad) === index
             );
+            console.log("uniqueResults:", uniqueResults);
+
+            if (uniqueResults.length === 0) {
+                alert("Nothing to claim");
+                return;
+            }
+            const transaction = new Transaction();
+            const publisherPubkey = new PublicKey(fetchquery.data?.publisher?.wallet_address!);
+
             for (const result of uniqueResults) {
                 const adIdBytes = adIdToBytes(result.ad);
                 const advertiserPubkey = new PublicKey(result.advertiser);
-                const publisherPubkey = new PublicKey(fetchquery.data?.publisher?.wallet_address!);
                 const [adPda] = PublicKey.findProgramAddressSync([Buffer.from("ad"), advertiserPubkey.toBuffer(), adIdBytes], program.programId);
                 const [vaultPda] = PublicKey.findProgramAddressSync([Buffer.from("vault"), advertiserPubkey.toBuffer(), adIdBytes], program.programId);
                 const [earningsPda] = PublicKey.findProgramAddressSync([Buffer.from("earnings"), adPda.toBuffer(), publisherPubkey.toBuffer()], program.programId);
-                try {
-                    await program.methods.claim().accounts({
-                        vault: vaultPda,
-                        earnings: earningsPda,
-                        ad: adPda,
-                        advertiser: advertiserPubkey,
-                        publisher: publisherPubkey,
-                        systemProgram: SystemProgram.programId,
-                    }).rpc({ skipPreflight: false });
-                    claimedAdIds.push(result.ad);
-                } catch (claimError) {
-                    console.error("Claim failed for ad:", result.ad, claimError);
-                }
+                const ix = await program.methods.claim().accounts({
+                    vault: vaultPda,
+                    earnings: earningsPda,
+                    ad: adPda,
+                    advertiser: advertiserPubkey,
+                    publisher: publisherPubkey,
+                    systemProgram: SystemProgram.programId,
+                }).instruction();
+                transaction.add(ix);
             }
-        } catch (error) {
-            console.error("Failed:", error);
-        }
-        if (claimedAdIds.length > 0) {
+
+            const { blockhash } = await connection.getLatestBlockhash();
+            transaction.recentBlockhash = blockhash;
+            transaction.feePayer = wallet.publicKey;
+
+            const signed = await wallet.signTransaction(transaction);
+            const txSig = await connection.sendRawTransaction(signed.serialize());
+            await connection.confirmTransaction(txSig, "confirmed");
+
+            const claimedAdIds = uniqueResults.map((r: any) => r.ad);
             await fetch("/api/crud/Publisher/Earning", {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ adIds: claimedAdIds })
             });
             fetchquery.refetch();
+
+        } catch (error) {
+            console.error("Failed:", error);
+        } finally {
+            setWithdrawing(false);
         }
     };
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#0a0a0a] text-gray-300">
+            {/* Loading Modal */}
+            {withdrawing && <WithdrawModal accent={ACCENT} />}
+
             <Sidebar activeTab={activeTab} />
 
             <main className="flex-1 p-8 overflow-y-auto">
@@ -152,9 +258,11 @@ const Earnings = () => {
 
                             <button
                                 onClick={Withdraw_BTN}
-                                className="flex cursor-pointer items-center gap-2 px-6 py-3 rounded-xl bg-[#161616] text-gray-200 text-sm font-semibold font-mono hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                                disabled={withdrawing}
+                                className="flex cursor-pointer items-center gap-2 px-6 py-3 rounded-xl bg-[#161616] text-gray-200 text-sm font-semibold font-mono hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
                                 style={{ border: `1px solid ${alpha(0.18)}` }}
                                 onMouseEnter={e => {
+                                    if (withdrawing) return;
                                     e.currentTarget.style.borderColor = ACCENT;
                                     e.currentTarget.style.boxShadow = `0 0 18px ${hAlpha(0.2)}`;
                                     e.currentTarget.style.color = '#ffffff';

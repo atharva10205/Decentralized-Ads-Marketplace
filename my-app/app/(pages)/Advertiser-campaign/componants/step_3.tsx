@@ -8,118 +8,109 @@ import { PublicKey, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { useRouter } from 'next/navigation';
 
-
-
+const ACCENT = '#ffffff';
+const alpha = (op: number) => `rgba(255,255,255,${op})`;
 const AUTHORITY = new PublicKey("C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz");
 
+type CostItem = { clicks: number; cpc: number; weekly: number };
+type Errors = { maximim_cost_per_bid?: string; selected?: string; click?: string };
 
+// ── BudgetCard OUTSIDE the component so it never remounts ──────────────────────
+function BudgetCard({
+    id, label, cost, isRecommended = false, children = null,
+    selected, onSelect, formatSOL,
+}: {
+    id: string; label: string; cost?: CostItem; isRecommended?: boolean;
+    children?: React.ReactNode; selected: string;
+    onSelect: (id: string) => void; formatSOL: (n: number) => string;
+}) {
+    const isActive = selected === id;
+    return (
+        <div
+            onClick={() => onSelect(id)}
+            className="rounded-lg p-4 cursor-pointer transition-all duration-150 bg-[#0d0d0d]"
+            style={{
+                border: `1px solid ${isActive ? ACCENT : 'rgba(255,255,255,0.06)'}`,
+                boxShadow: isActive ? `0 0 18px ${alpha(0.08)}` : 'none',
+            }}
+            onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.borderColor = alpha(0.2); }}
+            onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; }}
+        >
+            <div className="flex items-center gap-3 mb-3">
+                <div
+                    className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
+                    style={{ borderColor: isActive ? ACCENT : 'rgba(255,255,255,0.2)', background: isActive ? ACCENT : 'transparent' }}
+                >
+                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                </div>
+                <span className="text-sm font-semibold text-gray-200">{label}</span>
+                {isRecommended && (
+                    <span className="text-[10px] px-2 py-0.5 rounded font-mono border bg-gray-800 text-gray-300 border-gray-700 ml-auto">
+                        Recommended
+                    </span>
+                )}
+            </div>
+
+            {children}
+
+            {cost && (
+                <div className="border-t border-gray-800/50 pt-3 mt-3">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                        {[
+                            { label: 'Clicks', value: String(cost.clicks) },
+                            { label: 'CPC', value: `${formatSOL(cost.cpc)} SOL` },
+                            { label: 'Cost', value: `${formatSOL(cost.weekly)} SOL` },
+                        ].map(col => (
+                            <div key={col.label}>
+                                <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">{col.label}</p>
+                                <p className="text-sm font-bold text-gray-100 font-mono">{col.value}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function Three({ next, back, adID }) {
     const [Customclick, setCustomclick] = useState<number>(0);
     const [selected, setSelected] = useState("");
-    const [budget, setbudget] = useState(false)
+    const [budget, setbudget] = useState(false);
     const [maximim_cost_per_bid, set_maximim_cost_per_bid] = useState<number>(0);
-    const [Cost, setCost] = useState<CostItem[]>([])
+    const [Cost, setCost] = useState<CostItem[]>([]);
     const [publicKey, setPublicKey] = useState<string | null>("");
-    const [Clicks, setClicks] = useState<number>(0);
-    const [errors, setErrors] = useState<Error>({})
+    const [errors, setErrors] = useState<Errors>({});
     const { connection } = useConnection();
-    const [Pay_Button_State, setPay_Button_State] = useState(false)
     const ClintKey = useWallet();
     const router = useRouter();
 
-
     useEffect(() => {
-        console.log(adID, "adIDadIDadIDadIDadID")
-    }, [adID])
+        return () => {
+            navigator.sendBeacon("/api/crud/Advertiser-campaign-cleanup", JSON.stringify({ adID }));
+        };
+    }, [adID]);
 
+    useEffect(() => { setErrors({}); }, [selected, Customclick]);
 
-    useEffect(() => {
-        setErrors({})
-    }, [selected, Customclick])
+    const formatSOL = (amount: number): string => parseFloat(amount.toFixed(8)).toString();
 
-    type CostItem = {
-        clicks: number;
-        cpc: number;
-        weekly: number;
-    };
-
-    type Error = {
-        maximim_cost_per_bid?: String;
-        selected?: String;
-        click?: String;
-    }
-
-    const formatSOL = (amount: number): string => {
-        return parseFloat(amount.toFixed(8)).toString();
-    };
-
-    const Initialize = async () => {
-        const newError: Error = {}
-
+    const Initialize_and_Deposit = async () => {
+        const newError: Errors = {};
         if (!publicKey) { alert("Please connect your wallet first"); return; }
         if (selected === "") { newError.selected = "This field is mandatory"; setErrors(newError); return; }
         if (selected === "custom" && Customclick === 0) { newError.click = "This is mandatory"; setErrors(newError); return; }
         if (maximim_cost_per_bid === 0) { newError.maximim_cost_per_bid = "This field is mandatory"; setErrors(newError); return; }
 
-        try {
-            const adIdBytes = adIdToBytes(adID);
-            const program = getProgram(ClintKey, connection);
-            const { adPDA, vaultPDA } = getPDA(new PublicKey(publicKey), adIdBytes);
-
-            const tx = await program.methods
-                .initialiseAd(adIdBytes)
-                .accounts({
-                    ad: adPDA,
-                    vault: vaultPDA,
-                    advertiser: new PublicKey(publicKey),
-                    authority: AUTHORITY,
-                    systemProgram: SystemProgram.programId,
-                }).rpc();
-
-            console.log("Initialized:", tx);
-            setPay_Button_State(true);
-
-        } catch (err: any) {
-            console.error(" Init failed:", err);
-            alert("Initialization failed: " + err.message);
-        }
-    }
-    const Deposit = async () => {
-        const newError: Error = {}
-
-        if (!publicKey) {
-            alert("Please connect your wallet first");
-            return;
-        }
-        if (selected === "") {
-            newError.selected = "This field is mandatory"
-            setErrors(newError)
-            return
-        }
-        if (Customclick == 0 && Clicks === 0 && selected === "custom") {
-            newError.click = "This is mandatory"
-            setErrors(newError)
-            return
-        }
-
-
         let clickValue = 0;
-
-        if (selected === "low") {
-            clickValue = 200;
-        } else if (selected === "medium") {
-            clickValue = 400;
-        } else if (selected === "high") {
-            clickValue = 600;
-        } else if (selected === "custom") {
-            clickValue = Customclick;
-        }
-        setClicks(clickValue);
+        if (selected === "low") clickValue = 200;
+        else if (selected === "medium") clickValue = 400;
+        else if (selected === "high") clickValue = 600;
+        else if (selected === "custom") clickValue = Customclick;
 
         const totalSOL = clickValue * maximim_cost_per_bid;
         const lamports = Math.round(totalSOL * 1_000_000_000);
-
-
 
         try {
             const adIdBytes = adIdToBytes(adID);
@@ -127,487 +118,283 @@ export default function Three({ next, back, adID }) {
             const { adPDA, vaultPDA } = getPDA(new PublicKey(publicKey), adIdBytes);
             const SERVICE_FEE = new PublicKey("C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz");
 
-            const depositTx = await program.methods
-                .deposit(new BN(lamports))
-                .accounts({
-                    ad: adPDA,
-                    vault: vaultPDA,
-                    advertiser: new PublicKey(publicKey),
-                    serviceFee: SERVICE_FEE,
-                    systemProgram: SystemProgram.programId,
-                }).rpc();
+            const initIx = await program.methods.initialiseAd(adIdBytes).accounts({
+                ad: adPDA, vault: vaultPDA, advertiser: new PublicKey(publicKey),
+                authority: AUTHORITY, systemProgram: SystemProgram.programId,
+            }).instruction();
 
-            console.log("Deposited:", depositTx);
+            const tx = await program.methods.deposit(new BN(lamports)).accounts({
+                ad: adPDA, vault: vaultPDA, advertiser: new PublicKey(publicKey),
+                serviceFee: SERVICE_FEE, systemProgram: SystemProgram.programId,
+            }).preInstructions([initIx]).rpc();
+
+            console.log("Init + Deposit tx:", tx);
 
             const res = await fetch("/api/crud/Advertiser-campaign-step-3", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ publicKey, maximim_cost_per_bid, click: clickValue, adID })
+                body: JSON.stringify({ publicKey, maximim_cost_per_bid, click: clickValue, adID }),
             });
 
-            if (res.ok){ 
-                router.push("/Advertiser/Campaigns")
-                next()};
-
+            if (!res.ok) {
+                alert("Failed to save campaign data");
+                return;
+            }
+            await router.push("/Advertiser/Campaigns");
         } catch (err: any) {
-            console.error(" Deposit failed:", err);
-            alert("Deposit failed: " + err.message);
+            console.error("Init + Deposit failed:", err);
+            alert("Transaction failed: " + err.message);
         }
-
-    }
+    };
 
     const check_btn = () => {
-        const newError: Error = {}
-
-        if (maximim_cost_per_bid === 0) {
-            newError.maximim_cost_per_bid = "This field is mandatory",
-                setErrors(newError)
-            return;
-        }
-        setErrors({})
-        setbudget(true)
-
+        const newError: Errors = {};
+        if (maximim_cost_per_bid === 0) { newError.maximim_cost_per_bid = "This field is mandatory"; setErrors(newError); return; }
+        setErrors({});
+        setbudget(true);
         const cpc = Number(maximim_cost_per_bid);
         if (!cpc || cpc <= 0) return;
-
-        const CLICKS = [200, 400, 600];
-
-        setCost(
-            CLICKS.map(clicks => ({
-                clicks,
-                cpc: parseFloat(cpc.toFixed(8)),
-                weekly: parseFloat((clicks * cpc).toFixed(8)),
-            }))
-        );
+        setCost([200, 400, 600].map(clicks => ({
+            clicks,
+            cpc: parseFloat(cpc.toFixed(8)),
+            weekly: parseFloat((clicks * cpc).toFixed(8)),
+        })));
     };
 
     const connectPhantom = async () => {
         try {
-            if (!window?.solana?.isPhantom) {
-                alert("Phantom wallet not found");
-                return;
-            }
+            if (!window?.solana?.isPhantom) { alert("Phantom wallet not found"); return; }
             const res = await window.solana.connect();
-            const key = res.publicKey.toString();
-            setPublicKey(key);
-        } catch (err) {
-            console.error("Wallet connection failed", err);
-        }
+            setPublicKey(res.publicKey.toString());
+        } catch (err) { console.error("Wallet connection failed", err); }
     };
 
     const disconnectPhantom = async () => {
         if (!window.solana) return;
-
         await window.solana.disconnect();
-        console.log("Disconnected:", publicKey);
         setPublicKey(null);
     };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] font-sans">
-            <header className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border-b border-gray-800/50">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center space-x-3">
-                            <div className="flex items-center">
-                                <div className="bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] bg-clip-text text-transparent font-bold text-2xl tracking-tight">
-                                    Google Ads
-                                </div>
-                                <div className="mx-4 text-gray-700 text-lg">|</div>
-                                <div className="text-gray-200 font-medium text-lg">Create your first campaign</div>
-                            </div>
-                        </div>
+    const steps = [
+        { n: 1, label: 'About your business', done: true, active: false },
+        { n: 2, label: 'Create campaign', done: true, active: false },
+        { n: 3, label: 'Set Budget', done: false, active: true },
+    ];
 
-                        <div className="flex items-center space-x-4">
-                            <button className="flex items-center space-x-2 text-gray-400 hover:text-[#00FFA3] transition-colors p-2 rounded-lg hover:bg-[#161616]/50">
-                                <HelpCircle className="w-5 h-5" />
-                                <span className="text-sm font-medium hidden sm:inline">Help</span>
+    return (
+        <div className="min-h-screen bg-[#0a0a0a] text-gray-300">
+
+            {/* Header */}
+            <header className="bg-[#0c0c0c] border-b border-[#1f1f1f]">
+                <div className="max-w-6xl mx-auto px-6">
+                    <div className="flex items-center justify-between h-14">
+                        <div className="flex items-center gap-3">
+                            <span className="text-white font-semibold text-sm tracking-tight">Advertiser Campaign</span>
+                            <span className="text-gray-700">|</span>
+                            <span className="text-gray-500 text-sm">Create your first campaign</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button className="flex items-center gap-1.5 text-gray-600 hover:text-gray-300 transition-colors text-xs font-mono">
+                                <HelpCircle className="w-4 h-4" />Help
                             </button>
-                            <div className="w-9 h-9 bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10 rounded-full flex items-center justify-center border border-gray-800/50">
-                                <User className="w-5 h-5 text-[#00FFA3]" />
+                            <div className="w-7 h-7 rounded-md bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
+                                <User className="w-4 h-4 text-gray-500" />
                             </div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    <aside className="lg:w-64 flex-shrink-0">
-                        <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl shadow-xl p-6 sticky top-8">
-                            <h3 className="font-semibold text-gray-200 mb-6 text-lg">Add business information</h3>
+            <main className="max-w-6xl mx-auto px-6 py-8">
+                <div className="flex flex-col lg:flex-row gap-6">
 
-                            <div className="space-y-8">
-                                <div className="relative">
-                                    <div className="flex items-center mb-4">
-                                        <div className="w-8 h-8 bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full flex items-center justify-center text-black text-sm font-semibold shadow-lg shadow-[#00FFA3]/20 mr-3">
-                                            <Check className="w-4 h-4" />
+                    {/* Sidebar */}
+                    <aside className="lg:w-56 flex-shrink-0">
+                        <div className="bg-[#111111] border border-gray-800/70 rounded-xl p-5 sticky top-8">
+                            <h3 className="text-xs font-semibold text-gray-200 uppercase tracking-widest mb-5">Business Information</h3>
+                            <div className="space-y-4">
+                                {steps.map((step, i) => (
+                                    <div key={step.n} className="relative">
+                                        <div className="flex items-center gap-3">
+                                            <div
+                                                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                                                style={{
+                                                    background: step.done || step.active ? ACCENT : '#161616',
+                                                    color: step.done || step.active ? '#000000' : '#4b5563',
+                                                    border: step.done || step.active ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                                                }}
+                                            >
+                                                {step.done ? <Check className="w-3 h-3" /> : step.n}
+                                            </div>
+                                            <span className={`text-sm font-medium ${step.active ? 'text-white' : step.done ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                {step.label}
+                                            </span>
                                         </div>
-                                        <span className="font-medium text-gray-400">About your business</span>
+                                        {i < steps.length - 1 && (
+                                            <div className="absolute left-3.5 top-7 w-px h-4 bg-gray-800/60" />
+                                        )}
                                     </div>
-                                </div>
-
-                                <div className="relative">
-                                    <div className="flex items-center mb-4">
-                                        <div className="w-8 h-8 bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full flex items-center justify-center text-black text-sm font-semibold shadow-lg shadow-[#00FFA3]/20 mr-3">
-                                            <Check className="w-4 h-4" />
-                                        </div>
-                                        <span className="font-medium text-gray-400">Create campaign</span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex items-center">
-                                        <div className="w-8 h-8 bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full flex items-center justify-center text-black text-sm font-semibold shadow-lg shadow-[#00FFA3]/20 mr-3">
-                                            3
-                                        </div>
-                                        <span className="font-semibold text-gray-200">Enter payment details</span>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         </div>
                     </aside>
 
+                    {/* Main card */}
                     <div className="flex-1">
-                        <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl shadow-xl overflow-hidden">
+                        <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="p-8">
-                                <div className="mb-8">
-                                    <div className="flex items-center text-sm text-gray-500 mb-3">
-                                        <span>Step 3 of 3</span>
-                                        <ChevronRight className="w-4 h-4 mx-2" />
-                                        <span className="font-medium text-[#00FFA3]">Payment</span>
-                                    </div>
-                                    <div className='mb-10'>
-                                        <h1 className="text-2xl font-semibold text-gray-200 mb-1">
-                                            Pay with SOL
-                                        </h1>
 
-                                        <p className="text-gray-400 text-lg">
-                                            Get personalized suggestions based on your business information
-                                        </p>
-                                    </div>
-
-                                    {!publicKey && (
-                                        <div>
-                                            <button
-                                                onClick={connectPhantom}
-                                                className='group relative text-black rounded-xl cursor-pointer h-[50px] w-[200px] bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] hover:shadow-2xl hover:shadow-[#00FFA3]/20 active:scale-95 transition-all duration-300 font-semibold overflow-hidden'>
-                                                <span className="relative z-10">Connect Wallet</span>
-                                                <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {publicKey && (
-                                        <div>
-                                            <div className="text-gray-200 mb-6 bg-[#0a0a0a] border border-gray-800/50 rounded-lg p-4">
-                                                <p>
-                                                    <span className="font-bold text-[#00FFA3]">Wallet Address:</span>
-                                                    <span className="ml-2 text-gray-400 text-sm font-mono break-all">{publicKey}</span>
-                                                </p>
-                                            </div>
-
-                                            <button
-                                                onClick={disconnectPhantom}
-                                                className='text-gray-300 rounded-lg mb-10 cursor-pointer h-[50px] w-[200px] bg-gradient-to-br from-[#121212] to-[#0f0f0f] border-2 border-gray-800/50 hover:border-red-500/50 hover:text-red-400 transition-all font-medium'>
-                                                Disconnect Wallet
-                                            </button>
-
-                                            <div>
-                                                <p className="text-gray-200 font-semibold text-lg">Set a bid strategy</p>
-                                                <p className="text-gray-400 mb-6">
-                                                    Your bid strategy defines how we should bid for your ad in auctions to better use your budget.
-                                                </p>
-
-                                                <p className="text-gray-200 mb-2 font-medium">Maximum cost per click</p>
-
-                                                <div className="flex items-start gap-4">
-                                                    <div className="flex flex-col">
-                                                        <input
-                                                            type="number"
-                                                            placeholder="   Sol amount"
-                                                            min={0.0008}
-                                                            max={1}
-                                                            step="any"
-                                                            onChange={(e) => {
-                                                                const v = Number(e.target.value);
-                                                                if (v === 0) return set_maximim_cost_per_bid(0);
-                                                                if (Number(v) >= 0) set_maximim_cost_per_bid(v);
-                                                            }}
-                                                            onBlur={() => {
-                                                                if (maximim_cost_per_bid <= 0) {
-                                                                    set_maximim_cost_per_bid(0);
-                                                                }
-                                                            }}
-                                                            className={`border-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-200 bg-[#0a0a0a] rounded-lg h-[40px] p-4 w-[160px] transition-all ${errors.maximim_cost_per_bid ? "border-red-500/50" : "border-gray-800/50 focus:border-[#00FFA3] focus:shadow-lg focus:shadow-[#00FFA3]/10"} outline-none`}
-                                                        />
-
-                                                        {errors.maximim_cost_per_bid && (
-                                                            <p className="mt-1 text-sm text-red-400">
-                                                                {errors.maximim_cost_per_bid}
-                                                            </p>
-                                                        )}
-                                                    </div>
-
-                                                    <button
-                                                        onClick={check_btn}
-                                                        className="h-[40px] w-[100px] rounded-lg bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] text-black font-semibold hover:shadow-lg hover:shadow-[#00FFA3]/20 active:scale-95 transition-all"
-                                                    >
-                                                        Check
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {budget && (
-                                                <div className='mt-14'>
-                                                    {errors.selected && (
-                                                        <p className="mt-1 mb-2 text-sm text-red-400">
-                                                            {errors.selected}
-                                                        </p>
-                                                    )}
-                                                    <div className={`max-w-xl bg-gradient-to-br from-[#121212] to-[#0f0f0f] border-2 rounded-xl p-4 space-y-3
-                                                    ${errors.selected ? "border-red-500/50" : "border-gray-800/50"}
-                                                    `}>
-                                                        <h2 className="text-lg text-gray-200 font-semibold">
-                                                            How much do you want to spend per day?
-                                                        </h2>
-
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <div
-                                                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all
-                                                                    ${selected === "low"
-                                                                        ? "border-[#00FFA3]/50 bg-[#00FFA3]/10 shadow-lg shadow-[#00FFA3]/10"
-                                                                        : "border-gray-800/50 hover:border-[#00FFA3]/30 bg-[#0a0a0a]"
-                                                                    }`}
-                                                                onClick={() => setSelected("low")}
-                                                            >
-                                                                <div className="flex items-start justify-between mb-3">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="radio"
-                                                                            checked={selected === "low"}
-                                                                            readOnly
-                                                                            className="accent-[#00FFA3]"
-                                                                        />
-                                                                        <span className="text-gray-200 font-medium">{formatSOL(Cost[0]?.weekly || 0)} SOL</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mt-3 border-t border-gray-800/50 pt-3">
-                                                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                                                        <div>
-                                                                            <p className="text-xs mb-1 text-gray-400"> Clicks</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{Cost[0]?.clicks || 0}</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs text-gray-400 mb-3">CPC</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[0]?.cpc || 0)} SOL</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs mb-3 text-gray-400"> Cost</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[0]?.weekly || 0)} SOL</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* MEDIUM */}
-                                                            <div
-                                                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all
-                                                                    ${selected === "medium"
-                                                                        ? "border-[#00FFA3]/50 bg-[#00FFA3]/10 shadow-lg shadow-[#00FFA3]/10"
-                                                                        : "border-gray-800/50 hover:border-[#00FFA3]/30 bg-[#0a0a0a]"
-                                                                    }`}
-                                                                onClick={() => setSelected("medium")}
-                                                            >
-                                                                <div className="flex items-start justify-between mb-3">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="radio"
-                                                                            checked={selected === "medium"}
-                                                                            readOnly
-                                                                            className="accent-[#00FFA3]"
-                                                                        />
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="text-gray-200 font-medium">{formatSOL(Cost[1]?.weekly || 0)} SOL</span>
-                                                                            <span className="text-xs bg-[#00FFA3]/20 text-[#00FFA3] px-2 py-0.5 rounded border border-[#00FFA3]/30">
-                                                                                Recommended
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mt-3 border-t border-gray-800/50 pt-3">
-                                                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                                                        <div>
-                                                                            <p className="text-xs mb-1 text-gray-400">Clicks</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{Cost[1]?.clicks || 0}</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs text-gray-400 mb-3"> CPC</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[1]?.cpc || 0)} SOL</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs mb-3 text-gray-400"> Cost</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[1]?.weekly || 0)} SOL</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all
-                                                                    ${selected === "high"
-                                                                        ? "border-[#00FFA3]/50 bg-[#00FFA3]/10 shadow-lg shadow-[#00FFA3]/10"
-                                                                        : "border-gray-800/50 hover:border-[#00FFA3]/30 bg-[#0a0a0a]"
-                                                                    }`}
-                                                                onClick={() => setSelected("high")}
-                                                            >
-                                                                <div className="flex items-start justify-between mb-3">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="radio"
-                                                                            checked={selected === "high"}
-                                                                            readOnly
-                                                                            className="accent-[#00FFA3]"
-                                                                        />
-                                                                        <span className="text-gray-200 font-medium">{formatSOL(Cost[2]?.weekly || 0)} SOL</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="mt-3 border-t border-gray-800/50 pt-3">
-                                                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                                                        <div>
-                                                                            <p className="text-xs mb-1 text-gray-400"> Clicks</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{Cost[2]?.clicks || 0}</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs text-gray-400 mb-4"> CPC</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[2]?.cpc || 0)} SOL</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs mb-4 text-gray-400"> Cost</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Cost[2]?.weekly || 0)} SOL</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* CUSTOM */}
-                                                            <div
-                                                                className={`border-2 rounded-lg p-4 cursor-pointer transition-all
-                                                                    ${selected === "custom"
-                                                                        ? "border-[#00FFA3]/50 bg-[#00FFA3]/10 shadow-lg shadow-[#00FFA3]/10"
-                                                                        : "border-gray-800/50 hover:border-[#00FFA3]/30 bg-[#0a0a0a]"
-                                                                    }`}
-                                                                onClick={() => setSelected("custom")}
-                                                            >
-                                                                <div className="flex items-start justify-between mb-2">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <input
-                                                                            type="radio"
-                                                                            checked={selected === "custom"}
-                                                                            readOnly
-                                                                            className="accent-[#00FFA3]"
-                                                                        />
-                                                                        <span className="text-gray-200 font-medium">Set custom Click</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className='flex items-center justify-center mb-3'>
-                                                                    <div className="w-full">
-                                                                        {selected === "custom" && (
-                                                                            <input
-                                                                                type="number"
-                                                                                onChange={(e) => setCustomclick(Number(e.target.value))}
-                                                                                placeholder="Enter clicks"
-                                                                                className={`border-2 text-gray-200 bg-[#0a0a0a] rounded-lg px-3 py-2 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none outline-none transition-all
-                                                                            ${errors.click ? "border-red-500/50 w-full" : "border-gray-800/50 focus:border-[#00FFA3] w-full"}
-                                                                            `}
-                                                                            />
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-
-                                                                {errors.click && (
-                                                                    <p className="mb-2 text-sm text-red-400 text-center">
-                                                                        {errors.click}
-                                                                    </p>
-                                                                )}
-
-                                                                <div className="border-t border-gray-800/50 pt-3">
-                                                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                                                        <div>
-                                                                            <p className="text-xs mb-1 text-gray-400"> Clicks</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{Customclick}</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs text-gray-400 mb-3">CPC</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Number(maximim_cost_per_bid))} SOL</p>
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-xs mb-3 text-gray-400"> Cost</p>
-                                                                            <p className="font-medium text-gray-300 text-sm">{formatSOL(Number(Customclick) * Number(maximim_cost_per_bid))} SOL</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                <div className="flex items-center gap-2 text-xs text-gray-600 font-mono mb-4">
+                                    <span>Step 3 of 3</span>
+                                    <ChevronRight className="w-3 h-3" />
+                                    <span className="text-gray-300">Payment</span>
                                 </div>
+
+                                <h1 className="text-xl font-semibold text-white tracking-tight mb-1">Pay with SOL</h1>
+                                <p className="text-xs text-gray-600 mb-8">Connect your wallet and set your bid strategy</p>
+
+                                {/* Connect wallet */}
+                                {!publicKey && (
+                                    <button
+                                        onClick={connectPhantom}
+                                        className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 transition-all duration-200"
+                                        style={{ border: `1px solid ${alpha(0.25)}` }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = alpha(0.25); e.currentTarget.style.boxShadow = 'none'; }}
+                                    >
+                                        Connect Wallet
+                                    </button>
+                                )}
+
+                                {publicKey && (
+                                    <div className="space-y-8">
+
+                                        <div className="p-4 bg-[#0d0d0d] border border-gray-800/50 rounded-lg">
+                                            <p className="text-xs text-gray-600 uppercase tracking-widest mb-1.5">Wallet Address</p>
+                                            <p className="text-sm text-gray-200 font-mono break-all">{publicKey}</p>
+                                        </div>
+
+                                        <button
+                                            onClick={disconnectPhantom}
+                                            className="px-5 py-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 text-sm font-medium hover:text-red-400 hover:border-red-900/50 transition-all duration-150"
+                                        >
+                                            Disconnect Wallet
+                                        </button>
+
+                                        {/* CPC */}
+                                        <div>
+                                            <p className="text-xs text-gray-600 uppercase tracking-widest mb-1">Bid Strategy</p>
+                                            <p className="text-xs text-gray-600 mb-4">Your bid strategy defines how we should bid for your ad in auctions</p>
+                                            <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Maximum cost per click</label>
+                                            <div className="flex items-start gap-3">
+                                                <div>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="SOL amount"
+                                                        min={0.0008} max={1} step="any"
+                                                        onChange={(e) => {
+                                                            const v = Number(e.target.value);
+                                                            if (v >= 0) set_maximim_cost_per_bid(v);
+                                                        }}
+                                                        className="bg-[#0d0d0d] border border-gray-800/60 rounded-lg h-10 px-4 w-40 text-sm text-gray-200 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none transition-colors duration-150"
+                                                        style={{ borderColor: errors.maximim_cost_per_bid ? 'rgba(239,68,68,0.5)' : undefined }}
+                                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                                        onBlur={e => e.currentTarget.style.borderColor = errors.maximim_cost_per_bid ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                                    />
+                                                    {errors.maximim_cost_per_bid && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.maximim_cost_per_bid}</p>}
+                                                </div>
+                                                <button
+                                                    onClick={check_btn}
+                                                    className="h-10 px-5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 transition-all duration-150"
+                                                    style={{ border: `1px solid ${alpha(0.25)}` }}
+                                                    onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 12px ${alpha(0.1)}`; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.borderColor = alpha(0.25); e.currentTarget.style.boxShadow = 'none'; }}
+                                                >
+                                                    Check
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Budget cards */}
+                                        {budget && (
+                                            <div>
+                                                <p className="text-xs text-gray-600 uppercase tracking-widest mb-3">How much do you want to spend?</p>
+                                                {errors.selected && <p className="mb-3 text-xs text-red-400 font-mono">{errors.selected}</p>}
+
+                                                <div
+                                                    className="p-4 rounded-xl bg-[#0d0d0d]"
+                                                    style={{ border: `1px solid ${errors.selected ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)'}` }}
+                                                >
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                                                        <BudgetCard id="low" label={`${formatSOL(Cost[0]?.weekly || 0)} SOL`} cost={Cost[0]} selected={selected} onSelect={setSelected} formatSOL={formatSOL} />
+                                                        <BudgetCard id="medium" label={`${formatSOL(Cost[1]?.weekly || 0)} SOL`} cost={Cost[1]} isRecommended selected={selected} onSelect={setSelected} formatSOL={formatSOL} />
+                                                        <BudgetCard id="high" label={`${formatSOL(Cost[2]?.weekly || 0)} SOL`} cost={Cost[2]} selected={selected} onSelect={setSelected} formatSOL={formatSOL} />
+
+                                                        {/* Custom */}
+                                                        <BudgetCard id="custom" label="Set custom clicks" selected={selected} onSelect={setSelected} formatSOL={formatSOL}>
+                                                            {selected === "custom" && (
+                                                                <div className="mb-3" onClick={e => e.stopPropagation()}>
+                                                                    <input
+                                                                        type="number"
+                                                                        value={Customclick || ""}
+                                                                        onChange={(e) => setCustomclick(Number(e.target.value))}
+                                                                        placeholder="Enter clicks"
+                                                                        className="w-full bg-[#111111] border border-gray-800/60 rounded-lg px-3 py-2 text-sm text-gray-200 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none transition-colors duration-150"
+                                                                        style={{ borderColor: errors.click ? 'rgba(239,68,68,0.5)' : undefined }}
+                                                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                                                        onBlur={e => e.currentTarget.style.borderColor = errors.click ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                                                    />
+                                                                    {errors.click && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.click}</p>}
+                                                                </div>
+                                                            )}
+                                                            <div className="border-t border-gray-800/50 pt-3">
+                                                                <div className="grid grid-cols-3 gap-2 text-center">
+                                                                    {[
+                                                                        { label: 'Clicks', value: String(Customclick || 0) },
+                                                                        { label: 'CPC', value: `${formatSOL(Number(maximim_cost_per_bid))} SOL` },
+                                                                        { label: 'Cost', value: `${formatSOL(Number(Customclick) * Number(maximim_cost_per_bid))} SOL` },
+                                                                    ].map(col => (
+                                                                        <div key={col.label}>
+                                                                            <p className="text-xs text-gray-600 uppercase tracking-wider mb-1">{col.label}</p>
+                                                                            <p className="text-sm font-bold text-gray-100 font-mono">{col.value}</p>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </BudgetCard>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="px-8 py-6 bg-[#0a0a0a] border-t border-gray-800/50">
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={back}
-                                        className="px-8 py-3 cursor-pointer border-2 border-gray-800/50 text-gray-300 font-medium rounded-lg hover:bg-[#161616]/50 hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00FFA3] transition-all"
-                                    >
-                                        Back
-                                    </button>
-                                    {!Pay_Button_State && (
-                                        <button
-                                            onClick={Initialize}
-                                            className="group relative px-8 py-3 cursor-pointer rounded-xl font-semibold
-                                          bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]
-                                          text-black overflow-hidden
-                                          hover:shadow-2xl hover:shadow-[#00FFA3]/20
-                                          active:scale-95
-                                          transition-all duration-300"
-                                        >
-
-                                            <span className="relative z-10">Initialize</span>
-
-
-                                            <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        </button>
-                                    )}
-                                    {Pay_Button_State && (
-                                        <button
-                                            onClick={Deposit}
-                                            className="group relative px-8 py-3 cursor-pointer rounded-xl font-semibold
-                                          bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]
-                                          text-black overflow-hidden
-                                          hover:shadow-2xl hover:shadow-[#00FFA3]/20
-                                          active:scale-95
-                                          transition-all duration-300"
-                                        >
-
-                                            <span className="relative z-10">Deposit funds</span>
-
-
-                                            <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        </button>
-                                    )}
-                                </div>
+                            {/* Footer */}
+                            <div className="px-8 py-5 bg-[#0d0d0d] border-t border-gray-800/60 flex items-center justify-between">
+                                <button
+                                    onClick={back}
+                                    className="px-5 py-2.5 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-400 text-sm font-medium hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
+                                >
+                                    ← Back
+                                </button>
+                                <button
+                                    onClick={Initialize_and_Deposit}
+                                    className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                                    style={{ border: `1px solid ${alpha(0.25)}` }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`; e.currentTarget.style.color = '#ffffff'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = alpha(0.25); e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.color = ''; }}
+                                >
+                                    Initialize & Deposit →
+                                </button>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </main>
         </div>
-    )
+    );
 }

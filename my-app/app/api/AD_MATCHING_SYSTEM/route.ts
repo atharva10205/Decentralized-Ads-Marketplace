@@ -51,28 +51,35 @@ function calculateMatchScore(publisher, ad) {
 
 
 async function GetEligebleAd() {
-
     const whereCondition = {
         title: { not: null },
         destination_url: { not: null },
         cost_per_click: { not: null },
+        RemainingAmount: { not: null },
+        status : true
     };
 
-
-    const allIds = await prisma.ad.findMany({
+    const allAds = await prisma.ad.findMany({
         where: whereCondition,
-        select: { id: true }
+        select: { id: true, RemainingAmount: true, cost_per_click: true, Clicks: true }
     });
 
+    const eligible = allAds.filter(ad =>
+        ad.RemainingAmount! > Number(ad.cost_per_click!) * (ad.Clicks ?? 0)
+    );
 
-    if (allIds.length <= 100) {
+    if (eligible.length <= 100) {
         return prisma.ad.findMany({
-            where: whereCondition,
+            where: {
+                id: { in: eligible.map(a => a.id) }
+            }
         });
     }
 
-    const shuffled = allIds.sort(() => Math.random() - 0.5).slice(0, 100);
-    const randomIds = shuffled.map(a => a.id);
+    const randomIds = eligible
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 100)
+        .map(a => a.id);
 
     return prisma.ad.findMany({
         where: {

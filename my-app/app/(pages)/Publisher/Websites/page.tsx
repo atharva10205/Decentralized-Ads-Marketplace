@@ -67,7 +67,7 @@ const Websites = () => {
 
                         <button
                             onClick={() => router.push("/Publisher-campaign")}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                            className="flex cursor-pointer items-center gap-2 px-5 py-2.5 rounded-xl bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                             style={{ border: `1px solid ${alpha(0.18)}` }}
                             onMouseEnter={e => {
                                 e.currentTarget.style.borderColor = accent;
@@ -111,7 +111,6 @@ const Websites = () => {
                                     >
                                         <div className="p-6">
 
-                                            {/* Top Row: Name + Actions */}
                                             <div className="flex items-start justify-between mb-6">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-1.5">

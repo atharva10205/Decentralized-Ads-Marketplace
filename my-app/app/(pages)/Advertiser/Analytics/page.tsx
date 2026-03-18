@@ -1,167 +1,241 @@
 'use client';
 
-import { Download, TrendingUp } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import Sidebar from '../Componants/Sidebar';
+import { Download } from 'lucide-react';
+import {
+    LineChart, Line, XAxis, YAxis, CartesianGrid,
+    Tooltip, ResponsiveContainer
+} from 'recharts';
+import Sidebar from '../Sidebar/Sidebar';
+import { useSession } from 'next-auth/react';
+import { useQuery } from '@tanstack/react-query';
+
+type AnalyticsData = {
+    summary: {
+        totalImpressions: number;
+        totalClicks: number;
+        ctr: number;
+        totalEarnings: number;
+    };
+    chartData: { date: string; impressions: number; clicks: number }[];
+    topSites: { name: string; impressions: number; clicks: number; ctr: number }[];
+    accent: string;
+};
+
+const fetchAnalytics = async (): Promise<AnalyticsData> => {
+    const res = await fetch('/api/crud/Advertiser/Analytics');
+    if (!res.ok) throw new Error('Failed to fetch analytics');
+    return res.json();
+};
 
 const Analytics = () => {
-  const activeTab = 'Analytics';
+    const activeTab = 'Analytics';
+    const { status } = useSession();
 
-  const analyticsData = [
-    { metric: 'Total Impressions', value: '45,230', change: '+15.3%', up: true },
-    { metric: 'Click-Through Rate', value: '2.74%', change: '+0.4%', up: true },
-    { metric: 'Conversion Rate', value: '1.82%', change: '-0.2%', up: false },
-    { metric: 'Avg. Cost Per Click', value: '0.00000015 SOL', change: '-8.1%', up: true },
-  ];
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['analytics'],
+        queryFn: fetchAnalytics,
+        enabled: status === 'authenticated',
+    });
 
-  const campaigns = [
-    { name: 'Book Store Ads', clicks: 420, performance: 92 },
-    { name: 'NFT Collection Launch', clicks: 580, performance: 87 },
-    { name: 'DeFi Protocol Promo', clicks: 240, performance: 78 },
-  ];
+    const accent = data?.accent ?? '#FFFFFF';
+    const summary = data?.summary;
+    const chartData = data?.chartData ?? [];
+    const topSites = data?.topSites ?? [];
+    const maxClicks = Math.max(...topSites.map(s => s.clicks), 1);
 
-  const chartData = [
-    { date: 'Jan 1', impressions: 2400, clicks: 65, conversions: 12 },
-    { date: 'Jan 5', impressions: 3200, clicks: 88, conversions: 18 },
-    { date: 'Jan 10', impressions: 2800, clicks: 72, conversions: 14 },
-    { date: 'Jan 15', impressions: 4100, clicks: 112, conversions: 24 },
-    { date: 'Jan 20', impressions: 3600, clicks: 95, conversions: 19 },
-    { date: 'Jan 25', impressions: 4800, clicks: 128, conversions: 28 },
-    { date: 'Today', impressions: 5200, clicks: 142, conversions: 32 },
-  ];
+    const summaryCards = summary ? [
+        {
+            metric: 'Total Impressions',
+            value: summary.totalImpressions >= 1000
+                ? `${(summary.totalImpressions / 1000).toFixed(1)}K`
+                : String(summary.totalImpressions)
+        },
+        {
+            metric: 'Click-Through Rate',
+            value: `${summary.ctr}%`
+        },
+        {
+            metric: 'Total Clicks',
+            value: summary.totalClicks >= 1000
+                ? `${(summary.totalClicks / 1000).toFixed(1)}K`
+                : String(summary.totalClicks)
+        },
+        {
+            metric: 'Total Earnings',
+            value: `${summary.totalEarnings.toFixed(4)} SOL`
+        },
+    ] : [];
 
-  return (
-    <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] text-gray-200">
-      
-      {/* Sidebar */}
-      <Sidebar activeTab={activeTab} />
-
-      {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">Analytics</h1>
-            <p className="text-gray-500">Detailed insights into your campaign performance</p>
-          </div>
-          <button className="px-6 py-3 rounded-xl font-semibold bg-gray-800/50 hover:bg-gray-800 flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Export Report
-          </button>
-        </div>
-
-        {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {analyticsData.map((item) => (
-            <div
-              key={item.metric}
-              className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-6 rounded-2xl hover:border-gray-700 hover:shadow-xl hover:shadow-[#00FFA3]/5 hover:-translate-y-1 transition-all"
-            >
-              <p className="text-sm text-gray-500 mb-2">{item.metric}</p>
-              <p className="text-3xl font-bold mb-2">{item.value}</p>
-              <span className={`text-sm font-semibold flex items-center gap-1 ${item.up ? 'text-green-400' : 'text-red-400'}`}>
-                <TrendingUp className={`w-4 h-4 ${!item.up && 'rotate-180'}`} />
-                {item.change}
-              </span>
+    if (isLoading) {
+        return (
+            <div className="flex h-screen bg-[#0a0a0a] text-gray-200">
+                <Sidebar activeTab={activeTab} />
+                <main className="flex-1 p-8 overflow-auto">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-10 w-48 bg-[#111] rounded-xl" />
+                        <div className="grid grid-cols-4 gap-3">
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i} className="h-28 bg-[#111] rounded-2xl border border-[#1a1a1a]" />
+                            ))}
+                        </div>
+                        <div className="h-72 bg-[#111] rounded-2xl border border-[#1a1a1a]" />
+                        <div className="h-56 bg-[#111] rounded-2xl border border-[#1a1a1a]" />
+                    </div>
+                </main>
             </div>
-          ))}
-        </div>
+        );
+    }
 
-        {/* Performance + Hours */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-6 rounded-2xl">
-            <h2 className="text-lg font-semibold mb-4">Campaign Performance</h2>
-            <div className="space-y-4">
-              {campaigns.map((campaign) => (
-                <div key={campaign.name}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">{campaign.name}</span>
-                    <span className="text-sm font-semibold">{campaign.clicks} clicks</span>
-                  </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]"
-                      style={{ width: `${campaign.performance}%` }}
-                    />
-                  </div>
+    if (error) {
+        return (
+            <div className="flex h-screen bg-[#0a0a0a] text-gray-200">
+                <Sidebar activeTab={activeTab} />
+                <main className="flex-1 p-8">
+                    <p className="text-red-500 text-sm">Error loading analytics. Please try again.</p>
+                </main>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex h-screen bg-[#0a0a0a] text-gray-200 font-mono">
+            <Sidebar activeTab={activeTab} />
+
+            <main className="flex-1 p-6 overflow-y-auto">
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 className="text-xl font-semibold text-white">Analytics</h1>
+                        <p className="text-xs text-gray-600 mt-0.5">Campaign performance insights</p>
+                    </div>
+                    <button className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#0d0d0d] border border-[#1c1c1c] hover:bg-[#161616] flex items-center gap-2 text-gray-400 transition-colors">
+                        <Download className="w-3.5 h-3.5" />
+                        Export
+                    </button>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-6 rounded-2xl">
-            <h2 className="text-lg font-semibold mb-4">Top Performing Hours</h2>
-            <div className="space-y-3">
-              {['12:00 PM - 1:00 PM', '6:00 PM - 7:00 PM', '8:00 AM - 9:00 AM', '9:00 PM - 10:00 PM'].map((time, idx) => (
-                <div key={time} className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-xl">
-                  <span className="text-sm">{time}</span>
-                  <span className="text-sm font-semibold text-[#00FFA3]">
-                    {(100 - idx * 15).toFixed(0)}%
-                  </span>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    {summaryCards.map((item) => (
+                        <div
+                            key={item.metric}
+                            className="bg-[#0d0d0d] border border-[#1c1c1c] p-5 rounded-2xl"
+                        >
+                            <p className="text-xs text-gray-600 mb-2">{item.metric}</p>
+                            <p
+                                className="text-2xl font-semibold tabular-nums"
+                                style={{ color: item.metric === 'Total Earnings' ? accent : 'white' }}
+                            >
+                                {item.value}
+                            </p>
+                        </div>
+                    ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* Performance Trends Chart */}
-        <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 p-6 rounded-2xl mb-6">
-          <h2 className="text-lg font-semibold mb-6">Performance Trends</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-              <XAxis 
-                dataKey="date" 
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-              />
-              <YAxis 
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#1a1a1a', 
-                  border: '1px solid #2a2a2a',
-                  borderRadius: '8px',
-                  color: '#e5e7eb'
-                }}
-              />
-              <Legend 
-                wrapperStyle={{ fontSize: '12px' }}
-                iconType="line"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="impressions" 
-                stroke="#00FFA3" 
-                strokeWidth={2}
-                dot={{ fill: '#00FFA3', r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="clicks" 
-                stroke="#DC1FFF" 
-                strokeWidth={2}
-                dot={{ fill: '#DC1FFF', r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="conversions" 
-                stroke="#3B82F6" 
-                strokeWidth={2}
-                dot={{ fill: '#3B82F6', r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+                {/* Chart */}
+                <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl p-5 mb-4">
+    <div className="flex items-center justify-between mb-5">
+        <div>
+            <h2 className="text-sm font-semibold text-white">Performance Trends</h2>
+            <p className="text-xs text-gray-600 mt-0.5">Last 7 days</p>
         </div>
-      </main>
+        <div className="flex items-center gap-4 text-xs text-gray-600">
+            <span className="flex items-center gap-1.5">
+                <span
+                    className="w-5 inline-block"
+                    style={{ borderTop: `1.5px solid ${accent}` }}
+                />
+                Clicks
+            </span>
+        </div>
     </div>
-  );
+
+    <ResponsiveContainer width="100%" height={260}>
+        <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#161616" />
+            <XAxis
+                dataKey="date"
+                stroke="#2a2a2a"
+                tick={{ fill: '#444', fontSize: 10, fontFamily: 'monospace' }}
+                tickFormatter={d => {
+                    const date = new Date(d);
+                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                }}
+            />
+            <YAxis
+                stroke="#2a2a2a"
+                tick={{ fill: '#444', fontSize: 10 }}
+                tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
+            />
+            <Tooltip
+                contentStyle={{
+                    backgroundColor: '#111',
+                    border: '1px solid #222',
+                    borderRadius: '8px',
+                    color: '#e5e7eb',
+                    fontSize: '11px',
+                    fontFamily: 'monospace'
+                }}
+                labelFormatter={d => {
+                    const date = new Date(d);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                }}
+            />
+            <Line
+                type="monotone"
+                dataKey="clicks"
+                stroke={accent}
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={{ r: 4, fill: accent }}
+            />
+        </LineChart>
+    </ResponsiveContainer>
+</div>
+
+                {/* Top Sites */}
+                <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl p-5">
+                    <h2 className="text-sm font-semibold text-white mb-4">Top Sites</h2>
+                    {topSites.length === 0 ? (
+                        <p className="text-xs text-gray-700 italic">No site data yet</p>
+                    ) : (
+                        <div className="space-y-5">
+                            {topSites.map((site) => (
+                                <div key={site.name}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm text-gray-300 truncate max-w-[200px]">
+                                            {site.name}
+                                        </span>
+                                        <div className="flex items-center gap-4 text-xs text-gray-500 tabular-nums flex-shrink-0 ml-4">
+                                            <span>
+                                                {site.impressions >= 1000
+                                                    ? `${(site.impressions / 1000).toFixed(1)}K`
+                                                    : site.impressions} impr
+                                            </span>
+                                            <span>{site.clicks} clicks</span>
+                                            <span style={{ color: accent }}>{site.ctr}% CTR</span>
+                                        </div>
+                                    </div>
+                                    <div className="h-1.5 bg-[#161616] rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-700"
+                                            style={{
+                                                width: `${Math.min(site.ctr, 100)}%`,
+                                                background: accent,
+                                                opacity: 0.8
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+            </main>
+        </div>
+    );
 };
 
 export default Analytics;

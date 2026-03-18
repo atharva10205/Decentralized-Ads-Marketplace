@@ -1,7 +1,9 @@
 'use client'
 
-import { HelpCircle, Globe, User, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { HelpCircle, Globe, User, ChevronRight, AlertCircle, X } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react';
+const ACCENT = '#ffffff';
+const alpha  = (op: number) => `rgba(255,255,255,${op})`;
 
 type OneProps = {
     next: () => void;
@@ -10,322 +12,325 @@ type OneProps = {
 };
 
 type Errors = {
-    businessName?: string
-    url?: string
+    businessName?: string;
+    url?: string;
+};
+
+type Toast = {
+    id: number;
+    message: string;
+    type: 'error' | 'success' | 'info';
+};
+
+// ─── Toast ─────────────────────────────────────────────────────────────────────
+
+function ToastNotification({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
+    useEffect(() => {
+        const t = setTimeout(() => onDismiss(toast.id), 5000);
+        return () => clearTimeout(t);
+    }, [toast.id, onDismiss]);
+
+    return (
+        <div className="flex items-start gap-3 bg-[#161616] border border-red-500/30 rounded-xl px-4 py-3 shadow-2xl shadow-black/50 min-w-[300px] max-w-[380px]"
+            style={{ animation: 'slideIn 0.3s ease-out' }}>
+            <div className="mt-0.5 flex-shrink-0 w-7 h-7 bg-red-950/50 border border-red-900/30 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-200">URL already in use</p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed font-mono">{toast.message}</p>
+            </div>
+            <button onClick={() => onDismiss(toast.id)} className="flex-shrink-0 text-gray-600 hover:text-gray-300 transition-colors mt-0.5">
+                <X className="w-3.5 h-3.5" />
+            </button>
+        </div>
+    );
 }
 
+function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: number) => void }) {
+    return (
+        <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
+            {toasts.map(toast => <ToastNotification key={toast.id} toast={toast} onDismiss={onDismiss} />)}
+        </div>
+    );
+}
+
+// ─── Main ──────────────────────────────────────────────────────────────────────
+
 export default function One({ next, setAdID }: OneProps) {
-    const [businessName, setBusinessName] = useState("")
-    const [url, setUrl] = useState("")
-    const [errors, setErrors] = useState<Errors>({})
-    const [loading, setLoading] = useState(false);
-   
-    const isValidUrl = (urlString: string): boolean => {
-        if (!urlString.trim()) return false;
-        
-        const urlToTest = urlString.startsWith('http://') || urlString.startsWith('https://') 
-            ? urlString 
-            : `https://${urlString}`;
-        
+    const [businessName, setBusinessName] = useState("");
+    const [url, setUrl]                   = useState("");
+    const [errors, setErrors]             = useState<Errors>({});
+    const [loading, setLoading]           = useState(false);
+    const [toasts, setToasts]             = useState<Toast[]>([]);
+
+    const addToast    = (message: string, type: Toast['type'] = 'error') => setToasts(prev => [...prev, { id: Date.now(), message, type }]);
+    const dismissToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
+
+    const isValidUrl = (s: string): boolean => {
+        if (!s.trim()) return false;
+        const u = s.startsWith('http://') || s.startsWith('https://') ? s : `https://${s}`;
         try {
-            const url = new URL(urlToTest);
-            // Check if it has a valid protocol and hostname
-            return (url.protocol === 'http:' || url.protocol === 'https:') && 
-                   url.hostname.includes('.');
-        } catch {
-            return false;
-        }
+            const parsed = new URL(u);
+            return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.hostname.includes('.');
+        } catch { return false; }
     };
 
     const input_field_check = async () => {
         setLoading(true);
-
-        const newErrors: Errors = {}
-
-        if (!businessName.trim()) {
-            newErrors.businessName = "This field is mandatory"
-        }
-        
-        if (!url.trim()) {
-            newErrors.url = "This field is mandatory"
-        } else if (!isValidUrl(url)) {
-            newErrors.url = "Please enter a valid URL (e.g., example.com or www.example.com)"
-        }
-
-        setErrors(newErrors)
-
-        if (Object.keys(newErrors).length > 0) {
-            setLoading(false);
-            return;
-        }
+        const newErrors: Errors = {};
+        if (!businessName.trim()) newErrors.businessName = "This field is mandatory";
+        if (!url.trim()) newErrors.url = "This field is mandatory";
+        else if (!isValidUrl(url)) newErrors.url = "Please enter a valid URL (e.g., example.com)";
+        setErrors(newErrors);
+        if (Object.keys(newErrors).length > 0) { setLoading(false); return; }
 
         const formattedUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
 
         const res = await fetch("/api/crud/Advertiser-campaign-step-1", {
             method: "POST",
-            headers: {
-                "Content-type": "application/json"
-            },
-            body: JSON.stringify({ businessName, url: formattedUrl })
-        })
+            headers: { "Content-type": "application/json" },
+            body: JSON.stringify({ businessName, url: formattedUrl }),
+        });
 
-        if (!res.ok) {
+        if (res.status === 409) {
+            const data = await res.json();
+            addToast(data.error || "This website URL is already registered. Try a different one.");
+            setErrors(prev => ({ ...prev, url: "This URL is already in use" }));
             setLoading(false);
             return;
         }
+        if (!res.ok) { addToast("Something went wrong. Please try again."); setLoading(false); return; }
 
         const data = await res.json();
-        setAdID(data.adID); 
-
+        setAdID(data.adID);
         setLoading(false);
         next();
-    }
+    };
 
     const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setUrl(value);
-        
-        if (errors.url) {
-            setErrors(prev => ({ ...prev, url: undefined }));
-        }
+        setUrl(e.target.value);
+        if (errors.url) setErrors(prev => ({ ...prev, url: undefined }));
     };
+
+    const steps = [
+        { n: 1, label: 'About your business', active: true  },
+        { n: 2, label: 'Create campaign',      active: false },
+        { n: 3, label: 'Set Budget',            active: false },
+    ];
 
     return (
         <>
+            <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+            <style>{`
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateX(100%); }
+                    to   { opacity: 1; transform: translateX(0);    }
+                }
+            `}</style>
+
+            {/* Loading overlay */}
             {loading && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                     <div className="flex flex-col items-center gap-4">
-                        <div className="w-10 h-10 border-4 border-gray-800 border-t-[#00FFA3] rounded-full animate-spin" />
-                        <p className="text-gray-200 text-sm">Setting up your account…</p>
+                        <div className="w-8 h-8 border-2 border-gray-700 border-t-gray-300 rounded-full animate-spin" />
+                        <p className="text-gray-400 text-xs font-mono uppercase tracking-widest">Setting up your account…</p>
                     </div>
                 </div>
             )}
-            <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0b0b0b] to-[#0d0d0d] font-sans">
-                <header className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border-b border-gray-800/50">
-                    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex items-center justify-between h-16">
-                            <div className="flex items-center space-x-3">
-                                <div className="flex items-center">
-                                    <div className="bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] bg-clip-text text-transparent font-bold text-2xl tracking-tight">
-                                        Google Ads
-                                    </div>
-                                    <div className="mx-4 text-gray-700 text-lg">|</div>
-                                    <div className="text-gray-200 font-medium text-lg">Create your first campaign</div>
-                                </div>
-                            </div>
 
-                            <div className="flex items-center space-x-4">
-                                <button className="flex items-center space-x-2 text-gray-400 hover:text-[#00FFA3] transition-colors p-2 rounded-lg hover:bg-[#161616]/50">
-                                    <HelpCircle className="w-5 h-5" />
-                                    <span className="text-sm font-medium hidden sm:inline">Help</span>
+            <div className="min-h-screen bg-[#0a0a0a] text-gray-300">
+
+                {/* Header */}
+                <header className="bg-[#0c0c0c] border-b border-[#1f1f1f]">
+                    <div className="max-w-6xl mx-auto px-6">
+                        <div className="flex items-center justify-between h-14">
+                            <div className="flex items-center gap-3">
+                                <span className="text-white font-semibold text-sm tracking-tight">Advertiser Campaign</span>
+                                <span className="text-gray-700">|</span>
+                                <span className="text-gray-500 text-sm">Create your first campaign</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button className="flex items-center gap-1.5 text-gray-600 hover:text-gray-300 transition-colors text-xs font-mono">
+                                    <HelpCircle className="w-4 h-4" />
+                                    Help
                                 </button>
-                                <div className="w-9 h-9 bg-gradient-to-br from-[#00FFA3]/10 to-[#DC1FFF]/10 rounded-full flex items-center justify-center border border-gray-800/50">
-                                    <User className="w-5 h-5 text-[#00FFA3]" />
+                                <div className="w-7 h-7 rounded-md bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
+                                    <User className="w-4 h-4 text-gray-500" />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </header>
 
-                <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="flex flex-col lg:flex-row gap-8">
-                        <aside className="lg:w-64 flex-shrink-0">
-                            <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl shadow-xl p-6 sticky top-8">
-                                <h3 className="font-semibold text-gray-200 mb-6 text-lg">Add business information</h3>
+                <main className="max-w-6xl mx-auto px-6 py-8">
+                    <div className="flex flex-col lg:flex-row gap-6">
 
-                                <div className="space-y-8">
-                                    <div className="relative">
-                                        <div className="flex items-center mb-2">
-                                            <div className="w-8 h-8 bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF] rounded-full flex items-center justify-center text-black text-sm font-semibold shadow-lg shadow-[#00FFA3]/20 mr-3">
-                                                1
-                                            </div>
-                                            <span className="font-semibold text-gray-200">About your business</span>
-                                        </div>
-                                        <div className="ml-11  ">
-                                            <div className="flex items-center text-sm text-[#00FFA3] font-medium">
-                                            </div>
-                                        </div>
-                                        <div className="absolute left-4 top-8 bottom-0  w-px bg-gradient-to-b from-[#00FFA3]/30 to-transparent"></div>
-
-                                        <div className="relative">
-                                            <div className="ml-11 space-y-2.5">
-                                                <div className="flex items-center text-sm text-gray-400 font-medium">
-                                                    <span> Your business name</span>
+                        {/* Sidebar steps */}
+                        <aside className="lg:w-56 flex-shrink-0">
+                            <div className="bg-[#111111] border border-gray-800/70 rounded-xl p-5 sticky top-8">
+                                <h3 className="text-xs font-semibold text-gray-200 uppercase tracking-widest mb-5">Business Information</h3>
+                                <div className="space-y-4">
+                                    {steps.map((step, i) => (
+                                        <div key={step.n} className="relative">
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
+                                                    style={{
+                                                        background: step.active ? ACCENT : '#161616',
+                                                        color:      step.active ? '#000000' : '#4b5563',
+                                                        border:     step.active ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                                                    }}
+                                                >
+                                                    {step.n}
                                                 </div>
-                                                <div className="text-sm text-gray-500">Choose your destination</div>
+                                                <span className={`text-sm font-medium ${step.active ? 'text-white' : 'text-gray-600'}`}>
+                                                    {step.label}
+                                                </span>
                                             </div>
-                                            <div className="absolute left-4 top-8 bottom-0 w-px bg-gradient-to-b from-[#00FFA3]/20 to-transparent"></div>
+                                            {/* Connector line */}
+                                            {i < steps.length - 1 && (
+                                                <div className="absolute left-3.5 top-7 w-px h-4 bg-gray-800/60" />
+                                            )}
                                         </div>
-                                    </div>
+                                    ))}
+                                </div>
 
-                                    <div className="relative">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-[#161616] border border-gray-800/50 rounded-full flex items-center justify-center text-gray-500 text-sm font-medium mr-3">
-                                                2
-                                            </div>
-                                            <span className="font-medium text-gray-500">Create campaign</span>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 bg-[#161616] border border-gray-800/50 rounded-full flex items-center justify-center text-gray-500 text-sm font-medium mr-3">
-                                                3
-                                            </div>
-                                            <span className="font-medium text-gray-500">Set Budget</span>
-                                        </div>
-                                    </div>
+                                {/* Sub-items for step 1 */}
+                                <div className="mt-5 ml-10 space-y-2">
+                                    <p className="text-xs text-gray-400 font-medium">Your business name</p>
+                                    <p className="text-xs text-gray-600">Choose your destination</p>
                                 </div>
                             </div>
                         </aside>
 
+                        {/* Main card */}
                         <div className="flex-1">
-                            <div className="bg-gradient-to-br from-[#121212] to-[#0f0f0f] border border-gray-800/50 rounded-2xl shadow-xl overflow-hidden">
+                            <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
+
                                 <div className="p-8">
+                                    {/* Step label */}
+                                    <div className="flex items-center gap-2 text-xs text-gray-600 font-mono mb-4">
+                                        <span>Step 1 of 3</span>
+                                        <ChevronRight className="w-3 h-3" />
+                                        <span className="text-gray-300">About your business</span>
+                                    </div>
+
+                                    <h1 className="text-xl font-semibold text-white tracking-tight mb-1">Tell us about your business</h1>
+                                    <p className="text-xs text-gray-600 mb-8">Get personalized suggestions based on your business information</p>
+
+                                    {/* Business name */}
                                     <div className="mb-8">
-                                        <div className="flex items-center text-sm text-gray-500 mb-3">
-                                            <span>Step 1 of 3</span>
-                                            <ChevronRight className="w-4 h-4 mx-2" />
-                                            <span className="font-medium text-[#00FFA3]">About your business</span>
-                                        </div>
-                                        <h1 className="text-2xl font-semibold text-gray-200 mb-3">
-                                            Tell us about your business
-                                        </h1>
-
-                                        <p className="text-gray-400 text-lg">
-                                            Get personalized suggestions based on your business information
-                                        </p>
+                                        <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Business Name</label>
+                                        <input
+                                            type="text"
+                                            value={businessName}
+                                            onChange={(e) => setBusinessName(e.target.value)}
+                                            placeholder="e.g., 'Bharat Stores' or 'Sunny Restaurant'"
+                                            className="w-full bg-[#0d0d0d] border border-gray-800/60 rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-700 focus:outline-none transition-colors duration-150"
+                                            style={{ borderColor: errors.businessName ? 'rgba(239,68,68,0.5)' : undefined }}
+                                            onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                            onBlur={e  => e.currentTarget.style.borderColor = errors.businessName ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                        />
+                                        {errors.businessName && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.businessName}</p>}
+                                        <p className="mt-1.5 text-xs text-gray-600">Your business name will appear in your ads</p>
                                     </div>
 
-                                    <div className="mb-10">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <label className="block text-sm font-semibold text-gray-200">
-                                                What's your business name?
-                                            </label>
-                                        </div>
-                                        <div className="max-w-2xl">
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    value={businessName}
-                                                    onChange={(e) => setBusinessName(e.target.value)}
-                                                    placeholder="e.g., 'Bharat Stores' or 'Sunny Restaurant'"
-                                                    className={`w-full text-gray-200 px-4 py-3.5 rounded-lg outline-none transition-all border-2 bg-[#0a0a0a]
-                                               ${errors.businessName
-                                                            ? "border-red-500/50"
-                                                            : "border-gray-800/50 focus:border-[#00FFA3] focus:shadow-lg focus:shadow-[#00FFA3]/10"
-                                                        }`}
-                                                />
-
-                                                {errors.businessName && (
-                                                    <p className="mt-2 text-sm text-red-400">{errors.businessName}</p>
-                                                )}
-                                            </div>
-                                            <div className="mt-3 text-sm text-gray-500">
-                                                Your business name will appear in your ads
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="relative my-10">
+                                    {/* Divider */}
+                                    <div className="relative my-8">
                                         <div className="absolute inset-0 flex items-center">
-                                            <div className="w-full border-t border-gray-800/50"></div>
+                                            <div className="w-full border-t border-gray-800/50" />
                                         </div>
                                         <div className="relative flex justify-center">
-                                            <span className="px-4 bg-gradient-to-r from-[#121212] to-[#0f0f0f] text-sm text-gray-500">Where should people go after clicking your ad?</span>
+                                            <span className="px-4 bg-[#111111] text-xs text-gray-600 font-mono">Where should people go after clicking your ad?</span>
                                         </div>
                                     </div>
 
+                                    {/* Destination */}
                                     <div>
-                                        <h3 className="text-lg font-semibold text-gray-200 mb-2">
-                                            Choose your destination
-                                        </h3>
-                                        <p className="text-gray-400 mb-8">
-                                            Select where you want to send people who click your ad
-                                        </p>
+                                        <h3 className="text-sm font-semibold text-gray-200 mb-1">Choose your destination</h3>
+                                        <p className="text-xs text-gray-600 mb-5">Select where you want to send people who click your ad</p>
 
-                                        <div className="mb-8 p-4 border border-gray-800/50 rounded-xl hover:border-[#00FFA3]/30 hover:shadow-lg hover:shadow-[#00FFA3]/5 transition-all">
-                                            <div className="flex items-start mb-4">
-                                                <div className="flex items-center h-5 mt-0.5">
-                                                    <input
-                                                        type="radio"
-                                                        id="website"
-                                                        name="destination"
-                                                        className="w-5 h-5 text-[#00FFA3] border-gray-700 focus:ring-2 focus:ring-[#00FFA3] focus:ring-offset-2 focus:ring-offset-[#0a0a0a] bg-[#0a0a0a]"
-                                                        defaultChecked
-                                                    />
-                                                </div>
-                                                <label htmlFor="website" className="ml-4 cursor-pointer flex-1">
-                                                    <div className="flex items-center mb-2">
-                                                        <Globe className="w-5 h-5 text-[#00FFA3] mr-2" />
-                                                        <div className="text-base font-semibold text-gray-200">Your website</div>
+                                        <div
+                                            className="p-5 bg-[#0d0d0d] border border-gray-800/50 rounded-lg transition-all duration-150"
+                                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = alpha(0.15)}
+                                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'}
+                                        >
+                                            <div className="flex items-start gap-3 mb-4">
+                                                <input
+                                                    type="radio"
+                                                    id="website"
+                                                    name="destination"
+                                                    defaultChecked
+                                                    className="mt-0.5 w-4 h-4 accent-white"
+                                                />
+                                                <label htmlFor="website" className="cursor-pointer flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Globe className="w-4 h-4 text-gray-400" />
+                                                        <span className="text-sm font-semibold text-gray-200">Your website</span>
                                                     </div>
-                                                    <div className="text-sm text-gray-400 pl-7">
+                                                    <p className="text-xs text-gray-600 leading-relaxed">
                                                         Send people to a specific page on your website, homepage, YouTube channel, or social media page.
-                                                    </div>
+                                                    </p>
                                                 </label>
                                             </div>
 
-                                            <div className="ml-9">
-                                                <div className="mb-3">
-                                                    <span className="text-sm font-medium text-gray-300">Enter your website URL</span>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center">
-                                                        <div className="flex items-center px-4 py-3 bg-[#0a0a0a] border border-r-0 border-gray-800/50 rounded-l-lg">
-                                                            <Globe className="w-4 h-4 text-gray-500" />
-                                                            <span className="ml-2 text-sm text-gray-500">https://</span>
-                                                        </div>
-                                                        <input
-                                                            type="text"
-                                                            value={url}
-                                                            onChange={handleUrlChange}
-                                                            placeholder="www.example.com"
-                                                            className={`flex-1 text-gray-200 px-4 py-3 rounded-r-lg outline-none transition-all border-2 text-sm font-mono bg-[#0a0a0a]
-                                                            ${errors.url
-                                                                    ? "border-red-500/50"
-                                                                    : "border-gray-800/50 focus:border-[#00FFA3] focus:shadow-lg focus:shadow-[#00FFA3]/10"
-                                                                }`}
-                                                        />
+                                            {/* URL input */}
+                                            <div className="ml-7">
+                                                <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Website URL</label>
+                                                <div className="flex items-center">
+                                                    <div className="flex items-center gap-1.5 px-3 py-3 bg-[#111111] border border-r-0 border-gray-800/60 rounded-l-lg">
+                                                        <Globe className="w-3.5 h-3.5 text-gray-600" />
+                                                        <span className="text-xs text-gray-600 font-mono">https://</span>
                                                     </div>
-                                                    {errors.url && (
-                                                        <p className="mt-2 text-sm text-red-400">{errors.url}</p>
-                                                    )}
+                                                    <input
+                                                        type="text"
+                                                        value={url}
+                                                        onChange={handleUrlChange}
+                                                        placeholder="www.example.com"
+                                                        className="flex-1 bg-[#0d0d0d] border border-gray-800/60 rounded-r-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-700 font-mono focus:outline-none transition-colors duration-150"
+                                                        style={{ borderColor: errors.url ? 'rgba(239,68,68,0.5)' : undefined }}
+                                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                                        onBlur={e  => e.currentTarget.style.borderColor = errors.url ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                                    />
                                                 </div>
+                                                {errors.url && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.url}</p>}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="px-8 py-6 bg-[#0a0a0a] border-t border-gray-800/50">
-                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                        <div className="text-sm text-gray-500">
-                                            <div className="inline-flex items-center flex-wrap justify-center">
-                                                <HelpCircle className="w-2 h-1 mr-2" />
-                                                <span>Need help? Call for free ad setup at </span>
-                                                <span className="text-[#00FFA3] mx-1">6767-676-6767</span>
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            onClick={input_field_check}
-                                            className="group relative px-8 py-3 rounded-xl font-semibold
-                                              bg-gradient-to-r from-[#00FFA3] to-[#DC1FFF]
-                                              text-black overflow-hidden
-                                              hover:shadow-2xl hover:shadow-[#00FFA3]/20
-                                              active:scale-95
-                                              transition-all duration-300"
-                                        >
-                                            <span className="relative z-10">Next</span>
-                                            <div className="absolute inset-0 bg-gradient-to-r from-[#DC1FFF] to-[#00FFA3] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        </button>
-                                    </div>
+                                {/* Footer */}
+                                <div className="px-8 py-5 bg-[#0d0d0d] border-t border-gray-800/60 flex items-center justify-between">
+                                    <p className="text-xs text-gray-600 font-mono flex items-center gap-1.5">
+                                        <HelpCircle className="w-3.5 h-3.5" />
+                                        Free ad setup help: <span className="text-gray-400">6767-676-6767</span>
+                                    </p>
+                                    <button
+                                        onClick={input_field_check}
+                                        className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                                        style={{ border: `1px solid ${alpha(0.25)}` }}
+                                        onMouseEnter={e => {
+                                            e.currentTarget.style.borderColor = ACCENT;
+                                            e.currentTarget.style.boxShadow   = `0 0 18px ${alpha(0.12)}`;
+                                            e.currentTarget.style.color        = '#ffffff';
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.borderColor = alpha(0.25);
+                                            e.currentTarget.style.boxShadow   = 'none';
+                                            e.currentTarget.style.color        = '';
+                                        }}
+                                    >
+                                        Next →
+                                    </button>
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </main>
             </div>
         </>
-    )
+    );
 }

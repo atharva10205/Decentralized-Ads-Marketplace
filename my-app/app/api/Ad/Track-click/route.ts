@@ -14,6 +14,7 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
     try {
+
         const { adId, publisher_url } = await request.json();
 
         const publisher = await prisma.publisher.findUnique({
@@ -32,9 +33,24 @@ export async function POST(request: Request) {
             {
                 ad_id: adId,
                 publisher_id: publisher.id,
-                publisher_url:publisher_url
+                publisher_url: publisher_url
             }
         })
+        const cpc = await prisma.ad.findUnique({
+            where: { id: adId },
+            select: { cost_per_click: true }
+        })
+
+        if (!cpc?.cost_per_click) throw new Error(`No CPC for ad: ${adId}`);
+
+        const costPerClick = Math.round(Number(cpc.cost_per_click) * 1_000_000_000);
+
+        await prisma.ad.update({
+            where: { id: adId },
+            data: {
+                RemainingAmount: { decrement: costPerClick }
+            }
+        });
 
         return new Response(
             JSON.stringify({ success: true }),

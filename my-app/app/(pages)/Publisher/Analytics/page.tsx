@@ -39,18 +39,14 @@ interface ImpressionsChart {
 
 const ClicksAreaChart = ({
     clicksChart,
-    impressionsChart,
     maxClicks,
     accent,
 }: {
     clicksChart: ClicksChart[];
-    impressionsChart: ImpressionsChart[];
     maxClicks: number;
     accent: string;
 }) => {
     const ACCENT = accent;
-    console.log("ACCENT", ACCENT)
-    const IMPRESSION_COLOR = ACCENT.toLowerCase() === '#ffffff' ? '#4ADE80' : '#ffffff';
     const accentAlpha = (opacity: number) => {
         const r = parseInt(ACCENT.slice(1, 3), 16);
         const g = parseInt(ACCENT.slice(3, 5), 16);
@@ -70,18 +66,13 @@ const ClicksAreaChart = ({
     const chartH = H - padT - padB;
 
     const totalClicks = clicksChart.reduce((s, c) => s + c.count, 0);
-    const totalImpressions = impressionsChart.reduce((s, c) => s + c.count, 0);
-
     const peakClicks = Math.max(maxClicks, 1);
-    const peakImpressions = Math.max(...impressionsChart.map(c => c.count), 1);
     const gridLines = 4;
 
     const xOf = (i: number) => padL + (i / Math.max(clicksChart.length - 1, 1)) * chartW;
     const yOfClick = (v: number) => padT + chartH - (v / peakClicks) * chartH;
-    const yOfImp = (v: number) => padT + chartH - (v / peakImpressions) * chartH;
 
     const clickPoints = clicksChart.map((c, i) => ({ x: xOf(i), y: yOfClick(c.count) }));
-    const impPoints = impressionsChart.map((c, i) => ({ x: xOf(i), y: yOfImp(c.count) }));
 
     const toPath = (pts: { x: number; y: number }[], close = false) => {
         if (pts.length < 2) return '';
@@ -101,35 +92,23 @@ const ClicksAreaChart = ({
 
     const clickLinePath = toPath(clickPoints);
     const clickAreaPath = toPath(clickPoints, true);
-    const impLinePath = toPath(impPoints);
-    const impAreaPath = toPath(impPoints, true);
 
     return (
         <div className="bg-[#111111] border border-gray-800/70 p-6 rounded-xl mb-5">
             <div className="flex items-center justify-between mb-1">
                 <div>
-                    <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-widest">Clicks & Impressions — Last 7 Days</h2>
-                    <p className="text-xs text-gray-600 mt-0.5">Daily click and impression activity</p>
+                    <h2 className="text-sm font-semibold text-gray-200 uppercase tracking-widest">Clicks — Last 7 Days</h2>
+                    <p className="text-xs text-gray-600 mt-0.5">Daily click activity</p>
                     <div className="flex items-center gap-4 mt-2">
                         <span className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
                             <span className="inline-block w-2 h-2 rounded-sm" style={{ background: ACCENT }} />
                             Clicks
                         </span>
-                        <span className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
-                            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: IMPRESSION_COLOR }} />
-                            Impressions
-                        </span>
                     </div>
                 </div>
-                <div className="text-right space-y-1">
-                    <div>
-                        <span className="text-xl font-bold font-mono" style={{ color: ACCENT }}>{totalClicks.toLocaleString()}</span>
-                        <p className="text-xs text-gray-600">total clicks</p>
-                    </div>
-                    <div>
-                        <span className="text-lg font-bold font-mono" style={{ color: IMPRESSION_COLOR }}>{totalImpressions.toLocaleString()}</span>
-                        <p className="text-xs text-gray-600">total impressions</p>
-                    </div>
+                <div className="text-right">
+                    <span className="text-xl font-bold font-mono" style={{ color: ACCENT }}>{totalClicks.toLocaleString()}</span>
+                    <p className="text-xs text-gray-600">total clicks</p>
                 </div>
             </div>
 
@@ -144,10 +123,6 @@ const ClicksAreaChart = ({
                             <stop offset="0%" stopColor={ACCENT} stopOpacity="0.12" />
                             <stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
                         </linearGradient>
-                        <linearGradient id="areaFillImp" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={IMPRESSION_COLOR} stopOpacity="0.10" />
-                            <stop offset="100%" stopColor={IMPRESSION_COLOR} stopOpacity="0" />
-                        </linearGradient>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="2.5" result="blur" />
                             <feMerge>
@@ -160,40 +135,15 @@ const ClicksAreaChart = ({
                     {Array.from({ length: gridLines + 1 }).map((_, i) => {
                         const y = padT + (i / gridLines) * chartH;
                         const clickVal = Math.round(peakClicks * (1 - i / gridLines));
-                        const impVal = Math.round(peakImpressions * (1 - i / gridLines));
                         return (
                             <g key={i}>
-                                <line
-                                    x1={padL} y1={y} x2={padL + chartW} y2={y}
-                                    stroke="#1f1f1f" strokeWidth="1"
-                                />
+                                <line x1={padL} y1={y} x2={padL + chartW} y2={y} stroke="#1f1f1f" strokeWidth="1" />
                                 {i < gridLines && (
-                                    <>
-                                        <text x={padL} y={y - 4} fill="#444" fontSize="9" fontFamily="monospace">{clickVal}</text>
-                                        <text x={padL + chartW} y={y - 4} textAnchor="end" fill={IMPRESSION_COLOR} fontSize="9" fontFamily="monospace">{impVal}</text>
-                                    </>
+                                    <text x={padL} y={y - 4} fill="#444" fontSize="9" fontFamily="monospace">{clickVal}</text>
                                 )}
                             </g>
                         );
                     })}
-
-                    <path d={impAreaPath} fill="url(#areaFillImp)" />
-                    <path
-                        d={impLinePath}
-                        fill="none"
-                        stroke={`rgba(96,165,250,0.45)`}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                    <path
-                        d={impLinePath}
-                        fill="none"
-                        stroke={IMPRESSION_COLOR}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
 
                     <path d={clickAreaPath} fill="url(#areaFill)" />
                     <path
@@ -216,36 +166,16 @@ const ClicksAreaChart = ({
 
                     {hoveredIdx !== null && (
                         <line
-                            x1={clickPoints[hoveredIdx].x}
-                            y1={padT}
-                            x2={clickPoints[hoveredIdx].x}
-                            y2={padT + chartH}
-                            stroke="#444"
-                            strokeWidth="1"
-                            strokeDasharray="3 3"
+                            x1={clickPoints[hoveredIdx].x} y1={padT}
+                            x2={clickPoints[hoveredIdx].x} y2={padT + chartH}
+                            stroke="#444" strokeWidth="1" strokeDasharray="3 3"
                         />
                     )}
-
-                    {impPoints.map((pt, i) => (
-                        <circle
-                            key={`imp-${i}`}
-                            cx={pt.x} cy={pt.y}
-                            r={hoveredIdx === i ? 4 : 2.5}
-                            fill={hoveredIdx === i ? IMPRESSION_COLOR : `${IMPRESSION_COLOR}66`}
-                            stroke={hoveredIdx === i ? `${IMPRESSION_COLOR}4D` : 'none'}
-                            strokeWidth="6"
-                            style={{ transition: 'r 0.15s, fill 0.15s' }}
-                            pointerEvents="none"
-                        />
-                    ))}
 
                     {clickPoints.map((pt, i) => (
                         <g key={i}>
                             <rect
-                                x={pt.x - 30}
-                                y={padT}
-                                width={60}
-                                height={chartH}
+                                x={pt.x - 30} y={padT} width={60} height={chartH}
                                 fill="transparent"
                                 onMouseEnter={() => setHoveredIdx(i)}
                                 onMouseLeave={() => setHoveredIdx(null)}
@@ -262,7 +192,7 @@ const ClicksAreaChart = ({
 
                             {hoveredIdx === i && (() => {
                                 const tipW = 108;
-                                const tipH = 56;
+                                const tipH = 38;
                                 let tx = pt.x - tipW / 2;
                                 if (tx < 2) tx = 2;
                                 if (tx + tipW > W - 2) tx = W - tipW - 2;
@@ -277,21 +207,15 @@ const ClicksAreaChart = ({
                                         <text x={tx + 22} y={ty + 31} fill={ACCENT} fontSize="11" fontWeight="700" fontFamily="monospace">
                                             {clicksChart[i].count} {clicksChart[i].count === 1 ? 'click' : 'clicks'}
                                         </text>
-                                        <circle cx={tx + 14} cy={ty + 44} r="3" fill={IMPRESSION_COLOR} />
-                                        <text x={tx + 22} y={ty + 48} fill={IMPRESSION_COLOR} fontSize="11" fontWeight="700" fontFamily="monospace">
-                                            {impressionsChart[i]?.count ?? 0} impr.
-                                        </text>
                                     </g>
                                 );
                             })()}
 
                             <text
-                                x={pt.x}
-                                y={padT + chartH + 18}
+                                x={pt.x} y={padT + chartH + 18}
                                 textAnchor="middle"
                                 fill={hoveredIdx === i ? '#888' : '#3a3a3a'}
-                                fontSize="9"
-                                fontFamily="monospace"
+                                fontSize="9" fontFamily="monospace"
                                 style={{ transition: 'fill 0.15s' }}
                             >
                                 {clicksChart[i].date}

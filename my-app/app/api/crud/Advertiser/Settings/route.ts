@@ -9,7 +9,7 @@ export async function GET(req: Request) {
     const res = await prisma.user.findUnique({
         where: {
             email: session.user.email,
-            role: "publisher"
+            role: "advertiser"
         },
         select: {
             email: true,
@@ -18,13 +18,8 @@ export async function GET(req: Request) {
         }
     });
 
-    const WalletAddress = await prisma.publisher.findFirst({
-        where: { email: session.user.email },
-        select: { wallet_address: true }
-    });
-
     if (res) {
-        return NextResponse.json({ res, WalletAddress });
+        return NextResponse.json({ res });
     }
 }
 
@@ -42,21 +37,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, updated });
 }
 
-export async function PATCH(req: Request) {
-    const session = await auth();
-    if (!session || !session.user?.email) return;
-
-    const { wallet_address } = await req.json();
-
-    const updated = await prisma.publisher.updateMany({
-        where: { email: session.user.email },
-        data: { wallet_address },
-    });
-
-    return NextResponse.json({ success: true, updated });
-}
-
-// ── New: save accent colour ────────────────────────────────────────────────────
 export async function PUT(req: Request) {
     const session = await auth();
     if (!session || !session.user?.email) return;
