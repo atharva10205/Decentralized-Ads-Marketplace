@@ -3,9 +3,6 @@
 import { HelpCircle, User, ChevronRight, Check, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-const ACCENT = '#ffffff';
-const alpha = (op: number) => `rgba(255,255,255,${op})`;
-
 type Errors = {
     title?: string;
     description?: string;
@@ -39,6 +36,25 @@ const niches = [
 ];
 
 export default function Two({ adID, next, back }: StepProps) {
+
+    const [accent, setAccent] = useState('#ffffff');
+
+useEffect(() => {
+    const fetchAccent = async () => {
+        const res  = await fetch("/api/crud/Advertiser-campaign-step-2");
+        const data = await res.json();
+        setAccent(data.accent ?? '#ffffff');
+    };
+    fetchAccent();
+}, []);
+
+const alpha = (op: number) => {
+    const r = parseInt(accent.slice(1, 3), 16);
+    const g = parseInt(accent.slice(3, 5), 16);
+    const b = parseInt(accent.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${op})`;
+};
+
     const [KeyWords, setKeyWords] = useState([]);
     const [input, setInput] = useState("");
     const [description, setDescription] = useState("");
@@ -185,7 +201,7 @@ useEffect(() => {
                                                 <div
                                                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
                                                     style={{
-                                                        background: step.done || step.active ? ACCENT : '#161616',
+                                                        background: step.done || step.active ? accent : '#161616',
                                                         color: step.done || step.active ? '#000000' : '#4b5563',
                                                         border: step.done || step.active ? 'none' : '1px solid rgba(255,255,255,0.08)',
                                                     }}
@@ -237,7 +253,7 @@ useEffect(() => {
                                                 placeholder='e.g., "The best Web3 guide for Beginners"'
                                                 className={inputClass(!!errors.title)}
                                                 maxLength={3000}
-                                                onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                                onFocus={e => e.currentTarget.style.borderColor = accent}
                                                 onBlur={e => e.currentTarget.style.borderColor = errors.title ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                             />
                                             <span className="absolute bottom-2.5 right-3 text-[10px] text-gray-700 font-mono">{Title.length} / 3000</span>
@@ -257,7 +273,7 @@ useEffect(() => {
                                                 placeholder='e.g., "Independent bookstore specialising in rare first editions"'
                                                 className={inputClass(!!errors.description)}
                                                 maxLength={3000}
-                                                onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                                onFocus={e => e.currentTarget.style.borderColor = accent}
                                                 onBlur={e => e.currentTarget.style.borderColor = errors.description ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                             />
                                             <span className="absolute bottom-2.5 right-3 text-[10px] text-gray-700 font-mono">{description.length} / 3000</span>
@@ -351,7 +367,7 @@ useEffect(() => {
                                                         className="relative flex flex-col items-center justify-center gap-2 p-4 rounded-lg border transition-all duration-150 aspect-square"
                                                         style={{
                                                             background: isSelected ? '#1c1c1c' : '#0d0d0d',
-                                                            border: `1px solid ${isSelected ? ACCENT : 'rgba(255,255,255,0.06)'}`,
+                                                            border: `1px solid ${isSelected ? accent : 'rgba(255,255,255,0.06)'}`,
                                                             boxShadow: isSelected ? `0 0 14px ${alpha(0.08)}` : 'none',
                                                             opacity: isDisabled ? 0.4 : 1,
                                                             cursor: isDisabled ? 'not-allowed' : 'pointer',
@@ -401,7 +417,7 @@ useEffect(() => {
                                                 onKeyDown={handleKeyDown}
                                                 placeholder={KeyWords.length === 0 ? "Type and press Enter…" : ""}
                                                 className="flex-1 outline-none text-sm text-gray-200 placeholder-gray-700 bg-transparent font-mono min-w-[120px]"
-                                                onFocus={e => (e.currentTarget.closest('div') as HTMLElement).style.borderColor = ACCENT}
+                                                onFocus={e => (e.currentTarget.closest('div') as HTMLElement).style.borderColor = accent}
                                                 onBlur={e => (e.currentTarget.closest('div') as HTMLElement).style.borderColor = errors.keywords ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                             />
                                         </div>
@@ -423,7 +439,7 @@ useEffect(() => {
                                         className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                                         style={{ border: `1px solid ${alpha(0.25)}` }}
                                         onMouseEnter={e => {
-                                            e.currentTarget.style.borderColor = ACCENT;
+                                            e.currentTarget.style.borderColor = accent;
                                             e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`;
                                             e.currentTarget.style.color = '#ffffff';
                                         }}

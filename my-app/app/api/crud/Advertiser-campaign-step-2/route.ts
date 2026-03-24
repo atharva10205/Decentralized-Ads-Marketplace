@@ -113,3 +113,17 @@ export async function POST(req: Request) {
         });
     }
 }
+
+import { auth } from "@/app/api/auth/[...nextauth]/route";
+
+export async function GET(req: Request) {
+    const session = await auth();
+    if (!session || !session.user?.email) return;
+
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { accent: true },
+    });
+
+    return NextResponse.json({ accent: user?.accent ?? '#ffffff' });
+}

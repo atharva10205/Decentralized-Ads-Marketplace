@@ -404,6 +404,89 @@ export const IDL = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "refund",
+      "discriminator": [
+        2,
+        96,
+        183,
+        251,
+        63,
+        208,
+        46,
+        46
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "advertiser_key"
+              },
+              {
+                "kind": "account",
+                "path": "ad.ad_id",
+                "account": "Ad"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ad",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "advertiser_key"
+              },
+              {
+                "kind": "account",
+                "path": "ad.ad_id",
+                "account": "Ad"
+              }
+            ]
+          }
+        },
+        {
+          "name": "advertiser_key"
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -518,5 +601,4 @@ export const IDL = {
     }
   ]
 }
-
 export const PROGRAM_ID = "5AhkXaS77PEWP8pDdQx3SMDbEizqJFns6an8J42dXUuw";

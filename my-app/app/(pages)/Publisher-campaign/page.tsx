@@ -4,30 +4,38 @@ import { HelpCircle, User, Globe, Wallet, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-const ACCENT  = '#ffffff';
-const alpha   = (op: number) => `rgba(255,255,255,${op})`;
 
 export default function WebsiteRegistrationForm() {
-    const [websiteName, setWebsiteName]         = useState("");
-    const [websiteURL, setWebsiteURL]           = useState("");
-    const [walletAddress, setWalletAddress]     = useState("");
-    const [keywords, setKeywords]               = useState([]);
-    const [keywordInput, setKeywordInput]       = useState("");
-    const [selectedNiches, setSelectedNiches]   = useState([]);
-    const [errors, setErrors]                   = useState({});
-    const [loading, setLoading]                 = useState(false);
+    const [websiteName, setWebsiteName] = useState("");
+    const [websiteURL, setWebsiteURL] = useState("");
+    const [walletAddress, setWalletAddress] = useState("");
+    const [keywords, setKeywords] = useState([]);
+    const [keywordInput, setKeywordInput] = useState("");
+    const [selectedNiches, setSelectedNiches] = useState([]);
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
     const [hasExistingWallet, setHasExistingWallet] = useState(false);
 
     const router = useRouter();
 
+    const [accent, setAccent] = useState('#ffffff');
+
+    const alpha = (op: number) => {
+        const r = parseInt(accent.slice(1, 3), 16);
+        const g = parseInt(accent.slice(3, 5), 16);
+        const b = parseInt(accent.slice(5, 7), 16);
+        return `rgba(${r},${g},${b},${op})`;
+    };
+
     useEffect(() => {
         const get_wallet_address = async () => {
-            const res  = await fetch("/api/crud/Publisher-campaign");
+            const res = await fetch("/api/crud/Publisher-campaign");
             const data = await res.json();
             if (data?.address?.wallet_address) {
                 setWalletAddress(data.address.wallet_address);
                 setHasExistingWallet(true);
             }
+            setAccent(data.accent ?? '#ffffff');
         };
         get_wallet_address();
     }, []);
@@ -45,7 +53,7 @@ export default function WebsiteRegistrationForm() {
     };
 
     const removeKeyword = (index) => setKeywords(keywords.filter((_, i) => i !== index));
-    const removeNiche   = (n)     => setSelectedNiches(selectedNiches.filter(x => x !== n));
+    const removeNiche = (n) => setSelectedNiches(selectedNiches.filter(x => x !== n));
 
     const validateForm = () => {
         const e: any = {};
@@ -83,26 +91,25 @@ export default function WebsiteRegistrationForm() {
     };
 
     const niches = [
-        { id: 'ecommerce',     emoji: '🛒', label: 'E-commerce' },
-        { id: 'tech',          emoji: '💻', label: 'Tech & Software' },
-        { id: 'health',        emoji: '💊', label: 'Health & Wellness' },
-        { id: 'finance',       emoji: '💰', label: 'Finance' },
-        { id: 'education',     emoji: '📚', label: 'Education' },
-        { id: 'travel',        emoji: '✈️', label: 'Travel' },
-        { id: 'food',          emoji: '🍕', label: 'Food & Recipe' },
-        { id: 'fashion',       emoji: '👗', label: 'Fashion' },
-        { id: 'gaming',        emoji: '🎮', label: 'Gaming' },
-        { id: 'realestate',    emoji: '🏠', label: 'Real Estate' },
-        { id: 'business',      emoji: '📈', label: 'Business & Marketing' },
+        { id: 'ecommerce', emoji: '🛒', label: 'E-commerce' },
+        { id: 'tech', emoji: '💻', label: 'Tech & Software' },
+        { id: 'health', emoji: '💊', label: 'Health & Wellness' },
+        { id: 'finance', emoji: '💰', label: 'Finance' },
+        { id: 'education', emoji: '📚', label: 'Education' },
+        { id: 'travel', emoji: '✈️', label: 'Travel' },
+        { id: 'food', emoji: '🍕', label: 'Food & Recipe' },
+        { id: 'fashion', emoji: '👗', label: 'Fashion' },
+        { id: 'gaming', emoji: '🎮', label: 'Gaming' },
+        { id: 'realestate', emoji: '🏠', label: 'Real Estate' },
+        { id: 'business', emoji: '📈', label: 'Business & Marketing' },
         { id: 'entertainment', emoji: '🎬', label: 'Entertainment' },
-        { id: 'lifestyle',     emoji: '🌿', label: 'Lifestyle' },
-        { id: 'sports',        emoji: '⚽', label: 'Sports' },
-        { id: 'automotive',    emoji: '🚗', label: 'Automotive' },
+        { id: 'lifestyle', emoji: '🌿', label: 'Lifestyle' },
+        { id: 'sports', emoji: '⚽', label: 'Sports' },
+        { id: 'automotive', emoji: '🚗', label: 'Automotive' },
     ];
 
     const inputClass = (hasError: boolean) =>
-        `w-full px-4 py-3 rounded-lg bg-[#0d0d0d] border text-sm text-gray-200 placeholder-gray-700 font-mono focus:outline-none transition-colors duration-150 ${
-            hasError ? 'border-red-500/50' : 'border-gray-800/60'
+        `w-full px-4 py-3 rounded-lg bg-[#0d0d0d] border text-sm text-gray-200 placeholder-gray-700 font-mono focus:outline-none transition-colors duration-150 ${hasError ? 'border-red-500/50' : 'border-gray-800/60'
         }`;
 
     return (
@@ -158,8 +165,8 @@ export default function WebsiteRegistrationForm() {
                                         onChange={(e) => setWebsiteName(e.target.value)}
                                         placeholder="e.g., TechBlog Daily"
                                         className={`${inputClass(!!errors.websiteName)} pl-10`}
-                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
-                                        onBlur={e  => e.currentTarget.style.borderColor = errors.websiteName ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                        onFocus={e => e.currentTarget.style.borderColor = accent}
+                                        onBlur={e => e.currentTarget.style.borderColor = errors.websiteName ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                     />
                                 </div>
                                 {errors.websiteName && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.websiteName}</p>}
@@ -176,8 +183,8 @@ export default function WebsiteRegistrationForm() {
                                         onChange={(e) => setWebsiteURL(e.target.value)}
                                         placeholder="example.com"
                                         className={`${inputClass(!!errors.websiteURL)} pl-16`}
-                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
-                                        onBlur={e  => e.currentTarget.style.borderColor = errors.websiteURL ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                        onFocus={e => e.currentTarget.style.borderColor = accent}
+                                        onBlur={e => e.currentTarget.style.borderColor = errors.websiteURL ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                     />
                                 </div>
                                 {errors.websiteURL && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.websiteURL}</p>}
@@ -196,8 +203,8 @@ export default function WebsiteRegistrationForm() {
                                         placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
                                         disabled={hasExistingWallet}
                                         className={`${inputClass(!!errors.walletAddress)} pl-10 ${hasExistingWallet ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        onFocus={e => { if (!hasExistingWallet) e.currentTarget.style.borderColor = ACCENT; }}
-                                        onBlur={e  => { if (!hasExistingWallet) e.currentTarget.style.borderColor = errors.walletAddress ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'; }}
+                                        onFocus={e => { if (!hasExistingWallet) e.currentTarget.style.borderColor = accent; }}
+                                        onBlur={e => { if (!hasExistingWallet) e.currentTarget.style.borderColor = errors.walletAddress ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'; }}
                                     />
                                 </div>
                                 {errors.walletAddress && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.walletAddress}</p>}
@@ -248,7 +255,7 @@ export default function WebsiteRegistrationForm() {
                                 {/* Niche grid */}
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                                     {niches.map((niche) => {
-                                        const nicheText  = `${niche.emoji} ${niche.label}`;
+                                        const nicheText = `${niche.emoji} ${niche.label}`;
                                         const isSelected = selectedNiches.includes(nicheText);
                                         const isDisabled = !isSelected && selectedNiches.length >= 15;
 
@@ -263,11 +270,11 @@ export default function WebsiteRegistrationForm() {
                                                 disabled={isDisabled}
                                                 className="relative flex flex-col items-center justify-center gap-2 p-4 rounded-lg border transition-all duration-150 aspect-square"
                                                 style={{
-                                                    background:   isSelected ? '#1c1c1c' : '#0d0d0d',
-                                                    border:       `1px solid ${isSelected ? ACCENT : 'rgba(255,255,255,0.06)'}`,
-                                                    boxShadow:    isSelected ? `0 0 14px ${alpha(0.08)}` : 'none',
-                                                    opacity:      isDisabled ? 0.4 : 1,
-                                                    cursor:       isDisabled ? 'not-allowed' : 'pointer',
+                                                    background: isSelected ? '#1c1c1c' : '#0d0d0d',
+                                                    border: `1px solid ${isSelected ? accent : 'rgba(255,255,255,0.06)'}`,
+                                                    boxShadow: isSelected ? `0 0 14px ${alpha(0.08)}` : 'none',
+                                                    opacity: isDisabled ? 0.4 : 1,
+                                                    cursor: isDisabled ? 'not-allowed' : 'pointer',
                                                 }}
                                                 onMouseEnter={e => { if (!isSelected && !isDisabled) (e.currentTarget as HTMLElement).style.borderColor = alpha(0.25); }}
                                                 onMouseLeave={e => { if (!isSelected && !isDisabled) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; }}
@@ -297,7 +304,7 @@ export default function WebsiteRegistrationForm() {
                                 <div
                                     className="min-h-[48px] px-3 py-2 bg-[#0d0d0d] border border-gray-800/60 rounded-lg flex flex-wrap gap-2 items-center transition-colors duration-150"
                                     style={{ borderColor: errors.keywords ? 'rgba(239,68,68,0.5)' : undefined }}
-                                    onFocus={() => {}} 
+                                    onFocus={() => { }}
                                 >
                                     {keywords.map((kw, i) => (
                                         <span key={i} className="flex items-center gap-1 bg-[#1c1c1c] border border-gray-700/60 text-gray-300 px-2 py-0.5 rounded text-xs font-mono">
@@ -314,8 +321,8 @@ export default function WebsiteRegistrationForm() {
                                         onKeyDown={handleKeyDown}
                                         placeholder={keywords.length === 0 ? "Type and press Enter…" : ""}
                                         className="flex-1 outline-none text-sm text-gray-200 placeholder-gray-700 bg-transparent font-mono min-w-[120px]"
-                                        onFocus={e => (e.currentTarget.closest('div') as HTMLElement).style.borderColor = ACCENT}
-                                        onBlur={e  => (e.currentTarget.closest('div') as HTMLElement).style.borderColor = errors.keywords ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                        onFocus={e => (e.currentTarget.closest('div') as HTMLElement).style.borderColor = accent}
+                                        onBlur={e => (e.currentTarget.closest('div') as HTMLElement).style.borderColor = errors.keywords ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                     />
                                 </div>
                                 {errors.keywords && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.keywords}</p>}
@@ -336,14 +343,14 @@ export default function WebsiteRegistrationForm() {
                                 className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                                 style={{ border: `1px solid ${alpha(0.25)}` }}
                                 onMouseEnter={e => {
-                                    e.currentTarget.style.borderColor = ACCENT;
-                                    e.currentTarget.style.boxShadow   = `0 0 18px ${alpha(0.12)}`;
-                                    e.currentTarget.style.color        = '#ffffff';
+                                    e.currentTarget.style.borderColor = accent;
+                                    e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`;
+                                    e.currentTarget.style.color = '#ffffff';
                                 }}
                                 onMouseLeave={e => {
                                     e.currentTarget.style.borderColor = alpha(0.25);
-                                    e.currentTarget.style.boxShadow   = 'none';
-                                    e.currentTarget.style.color        = '';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.color = '';
                                 }}
                             >
                                 Submit for Review

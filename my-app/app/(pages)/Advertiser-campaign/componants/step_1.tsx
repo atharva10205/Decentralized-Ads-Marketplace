@@ -2,8 +2,6 @@
 
 import { HelpCircle, Globe, User, ChevronRight, AlertCircle, X } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react';
-const ACCENT = '#ffffff';
-const alpha  = (op: number) => `rgba(255,255,255,${op})`;
 
 type OneProps = {
     next: () => void;
@@ -55,16 +53,32 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
     );
 }
 
-// ─── Main ──────────────────────────────────────────────────────────────────────
 
 export default function One({ next, setAdID }: OneProps) {
-    const [businessName, setBusinessName] = useState("");
-    const [url, setUrl]                   = useState("");
-    const [errors, setErrors]             = useState<Errors>({});
-    const [loading, setLoading]           = useState(false);
-    const [toasts, setToasts]             = useState<Toast[]>([]);
+    const [accent, setAccent] = useState('#ffffff');
 
-    const addToast    = (message: string, type: Toast['type'] = 'error') => setToasts(prev => [...prev, { id: Date.now(), message, type }]);
+    useEffect(() => {
+        const fetchAccent = async () => {
+            const res = await fetch("/api/crud/Advertiser-campaign-step-1");
+            const data = await res.json();
+            setAccent(data.accent ?? '#ffffff');
+        };
+        fetchAccent();
+    }, []);
+
+    const alpha = (op: number) => {
+        const r = parseInt(accent.slice(1, 3), 16);
+        const g = parseInt(accent.slice(3, 5), 16);
+        const b = parseInt(accent.slice(5, 7), 16);
+        return `rgba(${r},${g},${b},${op})`;
+    };
+    const [businessName, setBusinessName] = useState("");
+    const [url, setUrl] = useState("");
+    const [errors, setErrors] = useState<Errors>({});
+    const [loading, setLoading] = useState(false);
+    const [toasts, setToasts] = useState<Toast[]>([]);
+
+    const addToast = (message: string, type: Toast['type'] = 'error') => setToasts(prev => [...prev, { id: Date.now(), message, type }]);
     const dismissToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
     const isValidUrl = (s: string): boolean => {
@@ -114,9 +128,9 @@ export default function One({ next, setAdID }: OneProps) {
     };
 
     const steps = [
-        { n: 1, label: 'About your business', active: true  },
-        { n: 2, label: 'Create campaign',      active: false },
-        { n: 3, label: 'Set Budget',            active: false },
+        { n: 1, label: 'About your business', active: true },
+        { n: 2, label: 'Create campaign', active: false },
+        { n: 3, label: 'Set Budget', active: false },
     ];
 
     return (
@@ -178,9 +192,9 @@ export default function One({ next, setAdID }: OneProps) {
                                                 <div
                                                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
                                                     style={{
-                                                        background: step.active ? ACCENT : '#161616',
-                                                        color:      step.active ? '#000000' : '#4b5563',
-                                                        border:     step.active ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                                                        background: step.active ? accent : '#161616',
+                                                        color: step.active ? '#000000' : '#4b5563',
+                                                        border: step.active ? 'none' : '1px solid rgba(255,255,255,0.08)',
                                                     }}
                                                 >
                                                     {step.n}
@@ -230,8 +244,8 @@ export default function One({ next, setAdID }: OneProps) {
                                             placeholder="e.g., 'Bharat Stores' or 'Sunny Restaurant'"
                                             className="w-full bg-[#0d0d0d] border border-gray-800/60 rounded-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-700 focus:outline-none transition-colors duration-150"
                                             style={{ borderColor: errors.businessName ? 'rgba(239,68,68,0.5)' : undefined }}
-                                            onFocus={e => e.currentTarget.style.borderColor = ACCENT}
-                                            onBlur={e  => e.currentTarget.style.borderColor = errors.businessName ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                            onFocus={e => e.currentTarget.style.borderColor = accent}
+                                            onBlur={e => e.currentTarget.style.borderColor = errors.businessName ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                         />
                                         {errors.businessName && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.businessName}</p>}
                                         <p className="mt-1.5 text-xs text-gray-600">Your business name will appear in your ads</p>
@@ -291,8 +305,8 @@ export default function One({ next, setAdID }: OneProps) {
                                                         placeholder="www.example.com"
                                                         className="flex-1 bg-[#0d0d0d] border border-gray-800/60 rounded-r-lg px-4 py-3 text-sm text-gray-200 placeholder-gray-700 font-mono focus:outline-none transition-colors duration-150"
                                                         style={{ borderColor: errors.url ? 'rgba(239,68,68,0.5)' : undefined }}
-                                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
-                                                        onBlur={e  => e.currentTarget.style.borderColor = errors.url ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
+                                                        onFocus={e => e.currentTarget.style.borderColor = accent}
+                                                        onBlur={e => e.currentTarget.style.borderColor = errors.url ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                                     />
                                                 </div>
                                                 {errors.url && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.url}</p>}
@@ -312,14 +326,14 @@ export default function One({ next, setAdID }: OneProps) {
                                         className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                                         style={{ border: `1px solid ${alpha(0.25)}` }}
                                         onMouseEnter={e => {
-                                            e.currentTarget.style.borderColor = ACCENT;
-                                            e.currentTarget.style.boxShadow   = `0 0 18px ${alpha(0.12)}`;
-                                            e.currentTarget.style.color        = '#ffffff';
+                                            e.currentTarget.style.borderColor = accent;
+                                            e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`;
+                                            e.currentTarget.style.color = '#ffffff';
                                         }}
                                         onMouseLeave={e => {
                                             e.currentTarget.style.borderColor = alpha(0.25);
-                                            e.currentTarget.style.boxShadow   = 'none';
-                                            e.currentTarget.style.color        = '';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                            e.currentTarget.style.color = '';
                                         }}
                                     >
                                         Next →

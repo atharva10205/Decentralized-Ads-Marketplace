@@ -37,15 +37,19 @@ export async function GET(req: Request) {
     if (!session || !session.user?.email) {
         return;
     }
-    const address = await prisma.publisher.findFirst({
-        where: {
-            email: session.user.email
-        },
-        select: {
-            wallet_address: true
-        }
+  const [address, user] = await Promise.all([
+    prisma.publisher.findFirst({
+        where: { email: session.user.email },
+        select: { wallet_address: true }
+    }),
+    prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { accent: true }
     })
-    if (address) {
-        return NextResponse.json({ address })
-    }
+]);
+
+return NextResponse.json({
+    address,
+    accent: user?.accent ?? '#ffffff'
+});
 }

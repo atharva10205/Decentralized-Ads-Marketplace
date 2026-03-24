@@ -165,7 +165,7 @@ export async function POST(req: Request) {
     const session = await auth();
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const connection = new Connection(process.env.RPC_URL!);
+    const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL!);
     const keypair = Keypair.fromSecretKey(bs58.decode(process.env.AUTHORITY_PRIVATE_KEY!));
     const wallet = new NodeWallet(keypair);
     const provider = new AnchorProvider(connection, wallet, {});

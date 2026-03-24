@@ -39,7 +39,7 @@ export function getPDA(AdvertiserKey: PublicKey, adID: number[]) {
 
 export function adIdToBytes(adId: string): number[] {
     const bytes = new TextEncoder().encode(adId);
-    const result = new Uint8Array(32); // zero-padded
+    const result = new Uint8Array(32); 
     result.set(bytes.slice(0, 32));
     return Array.from(result);
 }

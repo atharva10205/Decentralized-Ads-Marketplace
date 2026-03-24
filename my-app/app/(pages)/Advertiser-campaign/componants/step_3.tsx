@@ -8,21 +8,19 @@ import { PublicKey, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { useRouter } from 'next/navigation';
 
-const ACCENT = '#ffffff';
-const alpha = (op: number) => `rgba(255,255,255,${op})`;
 const AUTHORITY = new PublicKey("C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz");
 
 type CostItem = { clicks: number; cpc: number; weekly: number };
 type Errors = { maximim_cost_per_bid?: string; selected?: string; click?: string };
 
-// ── BudgetCard OUTSIDE the component so it never remounts ──────────────────────
 function BudgetCard({
     id, label, cost, isRecommended = false, children = null,
-    selected, onSelect, formatSOL,
+    selected, onSelect, formatSOL, accent, alpha,
 }: {
     id: string; label: string; cost?: CostItem; isRecommended?: boolean;
     children?: React.ReactNode; selected: string;
     onSelect: (id: string) => void; formatSOL: (n: number) => string;
+    accent: string; alpha: (op: number) => string;
 }) {
     const isActive = selected === id;
     return (
@@ -30,7 +28,7 @@ function BudgetCard({
             onClick={() => onSelect(id)}
             className="rounded-lg p-4 cursor-pointer transition-all duration-150 bg-[#0d0d0d]"
             style={{
-                border: `1px solid ${isActive ? ACCENT : 'rgba(255,255,255,0.06)'}`,
+                border: `1px solid ${isActive ? accent : 'rgba(255,255,255,0.06)'}`,
                 boxShadow: isActive ? `0 0 18px ${alpha(0.08)}` : 'none',
             }}
             onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.borderColor = alpha(0.2); }}
@@ -39,7 +37,7 @@ function BudgetCard({
             <div className="flex items-center gap-3 mb-3">
                 <div
                     className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
-                    style={{ borderColor: isActive ? ACCENT : 'rgba(255,255,255,0.2)', background: isActive ? ACCENT : 'transparent' }}
+                    style={{ borderColor: isActive ? accent : 'rgba(255,255,255,0.2)', background: isActive ? accent : 'transparent' }}
                 >
                     {isActive && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
                 </div>
@@ -73,8 +71,25 @@ function BudgetCard({
     );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
 export default function Three({ next, back, adID }) {
+    const [accent, setAccent] = useState('#ffffff');
+
+    useEffect(() => {
+        const fetchAccent = async () => {
+            const res = await fetch("/api/crud/Advertiser-campaign-step-3");
+            const data = await res.json();
+            setAccent(data.accent ?? '#ffffff');
+        };
+        fetchAccent();
+    }, []);
+
+    const alpha = (op: number) => {
+        const r = parseInt(accent.slice(1, 3), 16);
+        const g = parseInt(accent.slice(3, 5), 16);
+        const b = parseInt(accent.slice(5, 7), 16);
+        return `rgba(${r},${g},${b},${op})`;
+    };
+
     const [Customclick, setCustomclick] = useState<number>(0);
     const [selected, setSelected] = useState("");
     const [budget, setbudget] = useState(false);
@@ -219,7 +234,7 @@ export default function Three({ next, back, adID }) {
                                             <div
                                                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
                                                 style={{
-                                                    background: step.done || step.active ? ACCENT : '#161616',
+                                                    background: step.done || step.active ? accent : '#161616',
                                                     color: step.done || step.active ? '#000000' : '#4b5563',
                                                     border: step.done || step.active ? 'none' : '1px solid rgba(255,255,255,0.08)',
                                                 }}
@@ -239,7 +254,6 @@ export default function Three({ next, back, adID }) {
                         </div>
                     </aside>
 
-                    {/* Main card */}
                     <div className="flex-1">
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="p-8">
@@ -253,13 +267,12 @@ export default function Three({ next, back, adID }) {
                                 <h1 className="text-xl font-semibold text-white tracking-tight mb-1">Pay with SOL</h1>
                                 <p className="text-xs text-gray-600 mb-8">Connect your wallet and set your bid strategy</p>
 
-                                {/* Connect wallet */}
                                 {!publicKey && (
                                     <button
                                         onClick={connectPhantom}
                                         className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 transition-all duration-200"
                                         style={{ border: `1px solid ${alpha(0.25)}` }}
-                                        onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`; }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`; }}
                                         onMouseLeave={e => { e.currentTarget.style.borderColor = alpha(0.25); e.currentTarget.style.boxShadow = 'none'; }}
                                     >
                                         Connect Wallet
@@ -298,7 +311,7 @@ export default function Three({ next, back, adID }) {
                                                         }}
                                                         className="bg-[#0d0d0d] border border-gray-800/60 rounded-lg h-10 px-4 w-40 text-sm text-gray-200 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none transition-colors duration-150"
                                                         style={{ borderColor: errors.maximim_cost_per_bid ? 'rgba(239,68,68,0.5)' : undefined }}
-                                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                                        onFocus={e => e.currentTarget.style.borderColor = accent}
                                                         onBlur={e => e.currentTarget.style.borderColor = errors.maximim_cost_per_bid ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                                     />
                                                     {errors.maximim_cost_per_bid && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.maximim_cost_per_bid}</p>}
@@ -307,7 +320,7 @@ export default function Three({ next, back, adID }) {
                                                     onClick={check_btn}
                                                     className="h-10 px-5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 transition-all duration-150"
                                                     style={{ border: `1px solid ${alpha(0.25)}` }}
-                                                    onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 12px ${alpha(0.1)}`; }}
+                                                    onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = `0 0 12px ${alpha(0.1)}`; }}
                                                     onMouseLeave={e => { e.currentTarget.style.borderColor = alpha(0.25); e.currentTarget.style.boxShadow = 'none'; }}
                                                 >
                                                     Check
@@ -315,7 +328,6 @@ export default function Three({ next, back, adID }) {
                                             </div>
                                         </div>
 
-                                        {/* Budget cards */}
                                         {budget && (
                                             <div>
                                                 <p className="text-xs text-gray-600 uppercase tracking-widest mb-3">How much do you want to spend?</p>
@@ -327,12 +339,10 @@ export default function Three({ next, back, adID }) {
                                                 >
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-                                                        <BudgetCard id="low" label={`${formatSOL(Cost[0]?.weekly || 0)} SOL`} cost={Cost[0]} selected={selected} onSelect={setSelected} formatSOL={formatSOL} />
-                                                        <BudgetCard id="medium" label={`${formatSOL(Cost[1]?.weekly || 0)} SOL`} cost={Cost[1]} isRecommended selected={selected} onSelect={setSelected} formatSOL={formatSOL} />
-                                                        <BudgetCard id="high" label={`${formatSOL(Cost[2]?.weekly || 0)} SOL`} cost={Cost[2]} selected={selected} onSelect={setSelected} formatSOL={formatSOL} />
-
-                                                        {/* Custom */}
-                                                        <BudgetCard id="custom" label="Set custom clicks" selected={selected} onSelect={setSelected} formatSOL={formatSOL}>
+                                                        <BudgetCard id="low" label={`${formatSOL(Cost[0]?.weekly || 0)} SOL`} cost={Cost[0]} selected={selected} onSelect={setSelected} formatSOL={formatSOL} accent={accent} alpha={alpha} />
+                                                        <BudgetCard id="medium" label={`${formatSOL(Cost[1]?.weekly || 0)} SOL`} cost={Cost[1]} isRecommended selected={selected} onSelect={setSelected} formatSOL={formatSOL} accent={accent} alpha={alpha} />
+                                                        <BudgetCard id="high" label={`${formatSOL(Cost[2]?.weekly || 0)} SOL`} cost={Cost[2]} selected={selected} onSelect={setSelected} formatSOL={formatSOL} accent={accent} alpha={alpha} />
+                                                        <BudgetCard id="custom" label="Set custom clicks" selected={selected} onSelect={setSelected} formatSOL={formatSOL} accent={accent} alpha={alpha}>
                                                             {selected === "custom" && (
                                                                 <div className="mb-3" onClick={e => e.stopPropagation()}>
                                                                     <input
@@ -342,7 +352,7 @@ export default function Three({ next, back, adID }) {
                                                                         placeholder="Enter clicks"
                                                                         className="w-full bg-[#111111] border border-gray-800/60 rounded-lg px-3 py-2 text-sm text-gray-200 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none transition-colors duration-150"
                                                                         style={{ borderColor: errors.click ? 'rgba(239,68,68,0.5)' : undefined }}
-                                                                        onFocus={e => e.currentTarget.style.borderColor = ACCENT}
+                                                                        onFocus={e => e.currentTarget.style.borderColor = accent}
                                                                         onBlur={e => e.currentTarget.style.borderColor = errors.click ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}
                                                                     />
                                                                     {errors.click && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.click}</p>}
@@ -384,7 +394,7 @@ export default function Three({ next, back, adID }) {
                                     onClick={Initialize_and_Deposit}
                                     className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                                     style={{ border: `1px solid ${alpha(0.25)}` }}
-                                    onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`; e.currentTarget.style.color = '#ffffff'; }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`; e.currentTarget.style.color = '#ffffff'; }}
                                     onMouseLeave={e => { e.currentTarget.style.borderColor = alpha(0.25); e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.color = ''; }}
                                 >
                                     Initialize & Deposit →

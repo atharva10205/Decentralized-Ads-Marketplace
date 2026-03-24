@@ -1,10 +1,9 @@
 'use client'
 
-import { Plus, BarChart3, Edit, Pause, Play, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, MoreHorizontal, Pause, Play } from 'lucide-react';
 import Sidebar from '../Sidebar/Sidebar';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
 const alpha = (op: number) => `rgba(255,255,255,${op})`;
 
 type Campaign = {
@@ -27,6 +26,12 @@ const Campaigns = () => {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [loading, setLoading] = useState(true);
     const [accent, setAccent] = useState('#10B981');
+
+
+    
+    
+
+
 
     useEffect(() => {
         const fetchCampaigns = async () => {
@@ -136,8 +141,8 @@ const Campaigns = () => {
                                                         {campaign.business_name}
                                                     </h3>
                                                     <span className={`text-xs px-2 py-0.5 rounded font-mono tracking-wide border ${isActive
-                                                            ? 'bg-gray-800 text-gray-300 border-gray-700'
-                                                            : 'bg-[#1a1a1a] text-gray-500 border-gray-800'
+                                                        ? 'bg-gray-800 text-gray-300 border-gray-700'
+                                                        : 'bg-[#1a1a1a] text-gray-500 border-gray-800'
                                                         }`}>
                                                         {isActive && (
                                                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-300 mr-1.5 align-middle animate-pulse" />
@@ -152,19 +157,6 @@ const Campaigns = () => {
 
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => router.push(`/dashboard/advertiser/campaigns/${campaign.id}`)}
-                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
-                                                    title="View Stats"
-                                                >
-                                                    <BarChart3 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button
                                                     onClick={async () => {
                                                         const newStatus = !isActive;
                                                         await fetch("/api/crud/Advertiser/Campaings", {
@@ -176,16 +168,17 @@ const Campaigns = () => {
                                                             prev.map(c => c.id === campaign.id ? { ...c, status: newStatus } : c)
                                                         );
                                                     }}
-                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 hover:border-gray-600 transition-all duration-150"
+                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 cursor-pointer hover:border-gray-600 transition-all duration-150"
                                                     title={isActive ? 'Pause' : 'Resume'}
                                                 >
                                                     {isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                                                 </button>
                                                 <button
-                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-red-400 hover:border-red-900/60 transition-all duration-150"
-                                                    title="Delete"
+                                                    onClick={() => router.push(`/Advertiser/Advertiser_campaigns/${campaign.id}`)}
+                                                    className="p-2 rounded-lg bg-[#161616] border border-gray-800/60 text-gray-500 hover:text-gray-200 cursor-pointer hover:border-gray-600 transition-all duration-150"
+                                                    title="More options"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <MoreHorizontal className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </div>

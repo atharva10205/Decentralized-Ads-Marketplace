@@ -9,7 +9,6 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch all ads for this user
     const ads = await prisma.ad.findMany({
         where: { user_email: session.user.email },
         select: {
@@ -17,32 +16,26 @@ export async function GET(req: Request) {
             business_name: true,
             cost_per_click: true,
             status: true,
+            Clicks: true,  // ✅ use stored Clicks field
         }
     });
 
     const campaignIds = ads.map(a => a.id);
 
-    // Total clicks across all campaigns
+    // Total clicks from Click table (for TotalClicks stat card)
     const TotalClicks = await prisma.click.count({
         where: { ad_id: { in: campaignIds } }
     });
 
-    // Clicks grouped by ad_id
-    const clicksByAd = await prisma.click.groupBy({
-        by: ['ad_id'],
-        where: { ad_id: { in: campaignIds } },
-        _count: { _all: true }
-    });
-
-    // Build per-campaign data
-    const maxClicks = Math.max(...clicksByAd.map(c => c._count._all), 1);
+    // ✅ Use stored Clicks field from Ad model
+    const totalClicksForShare = ads.reduce((sum, a) => sum + (a.Clicks ?? 0), 0);
 
     const campaigns = ads.map(ad => {
-        const clickEntry = clicksByAd.find(c => c.ad_id === ad.id);
-        const clicks = clickEntry?._count._all ?? 0;
+        const clicks = ad.Clicks ?? 0;
         const cpc = Number(ad.cost_per_click ?? 0);
         const spend = clicks * cpc;
-        const performance = Math.round((clicks / maxClicks) * 100);
+        // ✅ performance = this campaign's share of total clicks
+        const performance = totalClicksForShare > 0 ? Math.round((clicks / totalClicksForShare) * 100) : 0;
 
         return {
             name: ad.business_name ?? 'Unnamed Campaign',
@@ -61,7 +54,7 @@ export async function GET(req: Request) {
         where: { email: session.user.email },
         select: { accent: true }
     });
-    // Last 7 days daily spend
+
     const now = new Date();
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(now.getDate() - 6);
@@ -75,14 +68,11 @@ export async function GET(req: Request) {
         select: { ad_id: true, created_at: true }
     });
 
-    // Build a map of cpc per ad_id
     const cpcMap = Object.fromEntries(ads.map(a => [a.id, Number(a.cost_per_click ?? 0)]));
 
-    // Group spend by day label e.g. "Mon"
     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dailySpendMap: Record<string, number> = {};
 
-    // Pre-fill all 7 days with 0
     for (let i = 0; i < 7; i++) {
         const d = new Date(sevenDaysAgo);
         d.setDate(sevenDaysAgo.getDate() + i);

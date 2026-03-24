@@ -131,7 +131,7 @@ pub mod my_project {
 
     pub fn refund(ctx: Context<Refund>) -> Result<()> {
         require_keys_eq!(
-            ctx.accounts.advertiser_key.key(),
+            ctx.accounts.ad.advertiser,
             ctx.accounts.signer.key(),
             AdError::Unauthorized
         );
@@ -152,12 +152,12 @@ pub mod my_project {
         anchor_lang::solana_program::program::invoke_signed(
             &anchor_lang::solana_program::system_instruction::transfer(
                 &ctx.accounts.vault.key(),
-                &ctx.accounts.advertiser_key.key(),
+              &ctx.accounts.recipient.key(),
                 withdraw_amount,
             ),
             &[
                 ctx.accounts.vault.to_account_info(),
-                ctx.accounts.advertiser_key.to_account_info(),
+                ctx.accounts.recipient.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ],
             signer_seeds,
@@ -187,6 +187,10 @@ pub struct Refund<'info> {
 
     /// CHECK: only for PDA seed
     pub advertiser_key: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    /// CHECK: recipient of refund funds
+    pub recipient: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub signer: Signer<'info>,

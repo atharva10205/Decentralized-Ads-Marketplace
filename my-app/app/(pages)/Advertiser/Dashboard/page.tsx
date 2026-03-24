@@ -509,7 +509,7 @@ const Dashboard = () => {
                                                         <div
                                                             className="absolute inset-y-0 left-0 rounded-sm transition-all duration-700"
                                                             style={{
-                                                                width: `${c.performance}%`,
+                                                                width: `${c.performance}%`, // ✅ now = click share %
                                                                 background: c.status === 'Active'
                                                                     ? `linear-gradient(90deg, rgba(0,0,0,0.3), ${accent})`
                                                                     : '#3f3f46',
@@ -518,7 +518,7 @@ const Dashboard = () => {
                                                         />
                                                     </div>
                                                     <span className="text-xs text-gray-500 tabular-nums flex-shrink-0 w-20 text-right whitespace-nowrap">
-                                                        {c.performance}% perf
+                                                        {c.performance}% clicks  {/* ✅ label updated */}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1.5">
