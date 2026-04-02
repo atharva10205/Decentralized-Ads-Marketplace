@@ -101,7 +101,6 @@ const Settings = () => {
     };
 
     const handleDeleteAccount = async () => {
-        // deletion logic to be added
         console.log("delete account");
     };
 
@@ -129,7 +128,7 @@ const Settings = () => {
 
     return (
         <div className="flex h-screen bg-[#0a0a0a] text-gray-300">
-            <Sidebar activeTab={activeTab} />
+            <Sidebar activeTab={activeTab}  />
 
             <main className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-6xl">
@@ -269,7 +268,6 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        {/* ── Accent Colour ── */}
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-800/60 flex items-center justify-between">
                                 <div className="flex items-center gap-3">

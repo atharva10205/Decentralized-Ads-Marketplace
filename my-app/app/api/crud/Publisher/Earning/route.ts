@@ -156,8 +156,6 @@ export async function GET(req: Request) {
         })
         .map(({ lastTimestamp, ...rest }) => rest);
 
-    console.log("transactions", transactionList)
-
     return NextResponse.json({ publisher, earningsRecords, transactionList, accent: user_accent?.accent ?? '#0010FF' });
 }
 

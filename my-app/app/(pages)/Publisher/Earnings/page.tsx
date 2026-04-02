@@ -249,12 +249,12 @@ const Earnings = () => {
                                 (e.currentTarget as HTMLElement).style.boxShadow = 'none';
                             }}
                         >
-                            <p className="text-xs text-gray-600 uppercase tracking-widest mb-3 font-mono">Total Balance</p>
+                            <p className="text-xs text-gray-600 uppercase tracking-widest mb-3 font-mono">Estimated Total Balance</p>
                             <p className="text-5xl font-bold text-white font-mono tabular-nums mb-1">
                                 {totalBalanceSOL.toFixed(4)}
                                 <span className="text-2xl text-gray-500 ml-2 font-mono">SOL</span>
                             </p>
-                            <p className="text-xs text-gray-600 mb-8 font-mono">+12.7% from last week</p>
+                            <p className="text-xs text-gray-600 mb-8 font-mono"></p>
 
                             <button
                                 onClick={Withdraw_BTN}
