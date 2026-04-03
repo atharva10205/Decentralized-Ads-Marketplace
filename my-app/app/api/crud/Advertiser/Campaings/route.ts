@@ -15,6 +15,7 @@ export async function GET() {
                 where: { user_email: session.user.email },
                 select: {
                     id: true,
+                    wallet_address:true,
                     destination_url: true,
                     business_name: true,
                     status: true,
@@ -25,7 +26,7 @@ export async function GET() {
             }),
             prisma.user.findUnique({
                 where: { email: session.user.email },
-                select: { accent: true }
+                select: {id:true , accent: true }
             })
         ]);
 

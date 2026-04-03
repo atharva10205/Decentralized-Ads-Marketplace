@@ -143,7 +143,7 @@ const Settings = () => {
 
     return (
         <div className="flex h-screen bg-[#0a0a0a] text-gray-300">
-            <Sidebar activeTab={activeTab} />
+            <Sidebar activeTab={activeTab} accent={accent}/>
 
             <main className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-6xl">
@@ -155,7 +155,6 @@ const Settings = () => {
 
                     <div className="grid gap-5">
 
-                        {/* ── Account Role ── */}
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-800/60 flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-[#161616] border border-gray-800/60">
@@ -248,7 +247,6 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        {/* ── Profile Settings ── */}
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-800/60 flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-[#161616] border border-gray-800/60">
@@ -283,7 +281,6 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        {/* ── Payment Settings ── */}
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-800/60 flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-[#161616] border border-gray-800/60">
@@ -315,7 +312,6 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        {/* ── Accent Colour ── */}
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-800/60 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -375,7 +371,6 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        {/* ── Danger Zone ── */}
                         <div className="bg-[#111111] border border-red-900/30 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-red-900/20 flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-red-950/40 border border-red-900/30">
@@ -405,19 +400,15 @@ const Settings = () => {
                 </div>
             </main>
 
-            {/* ── Delete Confirmation Modal ── */}
             {showDeleteModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                         onClick={() => { setShowDeleteModal(false); setDeleteEmailInput(""); }}
                     />
 
-                    {/* Modal */}
                     <div className="relative z-10 bg-[#111111] border border-red-900/40 rounded-xl w-full max-w-md mx-4 p-6 shadow-2xl">
 
-                        {/* Close */}
                         <button
                             onClick={() => { setShowDeleteModal(false); setDeleteEmailInput(""); }}
                             className="absolute top-4 right-4 text-gray-600 hover:text-gray-300 transition-colors"
@@ -425,7 +416,6 @@ const Settings = () => {
                             <X className="w-4 h-4" />
                         </button>
 
-                        {/* Icon */}
                         <div className="w-10 h-10 rounded-full bg-red-950/50 border border-red-900/40 flex items-center justify-center mb-4">
                             <Trash2 className="w-5 h-5 text-red-500" />
                         </div>
@@ -435,13 +425,11 @@ const Settings = () => {
                             This action is <span className="text-red-400 font-medium">permanent and irreversible</span>. All your data, websites, earnings records and settings will be deleted.
                         </p>
 
-                        {/* Show user's email */}
                         <div className="p-3 bg-[#0d0d0d] border border-gray-800/50 rounded-lg mb-4">
                             <p className="text-xs text-gray-600 mb-1">Account to be deleted</p>
                             <p className="text-sm text-gray-200 font-mono">{userEmail}</p>
                         </div>
 
-                        {/* Email confirmation input */}
                         <div className="mb-5">
                             <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">
                                 Type your email to confirm
@@ -457,7 +445,6 @@ const Settings = () => {
                             />
                         </div>
 
-                        {/* Actions */}
                         <div className="flex gap-3">
                             <button
                                 onClick={() => { setShowDeleteModal(false); setDeleteEmailInput(""); }}

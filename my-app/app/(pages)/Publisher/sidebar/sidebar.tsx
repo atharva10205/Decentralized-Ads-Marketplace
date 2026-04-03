@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 interface SidebarProps {
   activeTab: string;
+  accent?: String;
 }
 interface PublisherData {
   email: string;
@@ -14,19 +15,9 @@ interface PublisherData {
   accent: string | null;
 }
 
-const Sidebar = ({ activeTab }: SidebarProps) => {
+const Sidebar = ({ activeTab, accent }: SidebarProps) => {
   const [publisherData, setPublisherData] = useState<PublisherData | null>(null);
 
-  const router = useRouter();
-  const pathname = usePathname();
-  const [showBanner, setShowBanner] = useState(true);
-  const ACCENT = publisherData?.accent ?? '#FFFFFF';
-  const hAlpha = (op: number) => {
-    const r = parseInt(ACCENT.slice(1, 3), 16);
-    const g = parseInt(ACCENT.slice(3, 5), 16);
-    const b = parseInt(ACCENT.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${op})`;
-  };
   useEffect(() => {
     const data = async () => {
       const res = await fetch("/api/crud/Publisher/Sidebar");
@@ -35,6 +26,27 @@ const Sidebar = ({ activeTab }: SidebarProps) => {
     };
     data();
   }, []);
+  
+  let Accent: String;
+  if (accent) {
+    Accent = accent
+  } else if (publisherData?.accent) {
+    Accent = publisherData.accent;
+  } else {
+    Accent = '#ffffff';
+  }
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const [showBanner, setShowBanner] = useState(true);
+  const hAlpha = (op: number) => {
+    const r = parseInt(Accent.slice(1, 3), 16);
+    const g = parseInt(Accent.slice(3, 5), 16);
+    const b = parseInt(Accent.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${op})`;
+  };
+
+
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/Publisher/Dashboard' },
@@ -68,7 +80,7 @@ const Sidebar = ({ activeTab }: SidebarProps) => {
         }}
         onMouseEnter={e => {
           if (!isActive) {
-            e.currentTarget.style.border = `1px solid ${ACCENT}`;
+            e.currentTarget.style.border = `1px solid ${Accent}`;
             e.currentTarget.style.boxShadow = `0 0 10px ${hAlpha(0.12)}`;
             e.currentTarget.style.background = '#161616';
             e.currentTarget.style.color = '#e5e7eb';
@@ -108,7 +120,7 @@ const Sidebar = ({ activeTab }: SidebarProps) => {
               {publisherData?.name ?? '—'}
             </span>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ background: ACCENT }} />
+              <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ background: Accent }} />
               <span className="text-[10px] text-gray-500 truncate">
                 {publisherData?.email ?? '—'}
               </span>

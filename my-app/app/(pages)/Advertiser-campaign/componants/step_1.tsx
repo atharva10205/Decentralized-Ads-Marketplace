@@ -20,7 +20,6 @@ type Toast = {
     type: 'error' | 'success' | 'info';
 };
 
-// ─── Toast ─────────────────────────────────────────────────────────────────────
 
 function ToastNotification({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
     useEffect(() => {

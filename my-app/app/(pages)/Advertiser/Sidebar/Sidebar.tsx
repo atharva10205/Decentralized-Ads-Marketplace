@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 
 interface SidebarProps {
   activeTab: string;
+  SidebarAccent?: string;
+
 }
 
 interface SidebarData {
@@ -15,27 +17,40 @@ interface SidebarData {
   accent: string;
 }
 
-const Sidebar = ({ activeTab }: SidebarProps) => {
+const Sidebar = ({ activeTab, SidebarAccent }: SidebarProps) => {
   const router = useRouter();
   const [sidebarData, setSidebarData] = useState<SidebarData | null>(null);
+
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res    = await fetch('/api/crud/Advertiser/Sidebar');
+        const res = await fetch('/api/crud/Advertiser/Sidebar');
         const result = await res.json();
         setSidebarData(result.data);
+
+        console.log("resultdata", result.data)
       } catch (err) {
         console.error('Sidebar fetch error:', err);
       }
     };
     fetchData();
   }, []);
+  
+let Accent: string;
 
-  const accent = sidebarData?.accent ?? '#ffffff';
-  const hR     = parseInt(accent.slice(1, 3), 16);
-  const hG     = parseInt(accent.slice(3, 5), 16);
-  const hB     = parseInt(accent.slice(5, 7), 16);
+if (SidebarAccent) {
+  Accent = SidebarAccent;
+} else if (sidebarData?.accent) {
+  Accent = sidebarData.accent;
+} else {
+  Accent = '#ffffff';
+}
+
+
+  const hR = parseInt(Accent.slice(1, 3), 16);
+  const hG = parseInt(Accent.slice(3, 5), 16);
+  const hB = parseInt(Accent.slice(5, 7), 16);
   const hAlpha = (op: number) => `rgba(${hR},${hG},${hB},${op})`;
 
   const getInitials = (name: string) =>
@@ -43,18 +58,18 @@ const Sidebar = ({ activeTab }: SidebarProps) => {
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, route: '/Advertiser/Dashboard' },
-    { name: 'Campaigns', icon: Target,          route: '/Advertiser/Campaigns' },
-    { name: 'Wallet',    icon: Wallet,           route: '/Advertiser/Wallet'    },
-    { name: 'Analytics', icon: BarChart3,        route: '/Advertiser/Analytics' },
+    { name: 'Campaigns', icon: Target, route: '/Advertiser/Campaigns' },
+    { name: 'Wallet', icon: Wallet, route: '/Advertiser/Wallet' },
+    { name: 'Analytics', icon: BarChart3, route: '/Advertiser/Analytics' },
   ];
 
   const bottomNavItems = [
-    { name: 'Settings',    icon: Settings,    route: '/Advertiser/Settings' },
-    { name: 'Help Center', icon: HelpCircle,  route: '/Advertiser/Help'     },
+    { name: 'Settings', icon: Settings, route: '/Advertiser/Settings' },
+    { name: 'Help Center', icon: HelpCircle, route: '/Advertiser/Help' },
   ];
 
   const NavBtn = ({ item }: { item: { name: string; icon: any; route: string } }) => {
-    const Icon     = item.icon;
+    const Icon = item.icon;
     const isActive = activeTab === item.name;
 
     return (
@@ -63,23 +78,23 @@ const Sidebar = ({ activeTab }: SidebarProps) => {
         className="w-full cursor-pointer flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 text-sm font-medium"
         style={{
           background: isActive ? '#1c1c1c' : 'transparent',
-          color:      isActive ? '#ffffff'  : '',
-          border:     '1px solid transparent',
+          color: isActive ? '#ffffff' : '',
+          border: '1px solid transparent',
         }}
         onMouseEnter={e => {
           if (!isActive) {
-            e.currentTarget.style.border     = `1px solid ${accent}`;
-            e.currentTarget.style.boxShadow  = `0 0 10px ${hAlpha(0.12)}`;
+            e.currentTarget.style.border = `1px solid ${Accent}`;
+            e.currentTarget.style.boxShadow = `0 0 10px ${hAlpha(0.12)}`;
             e.currentTarget.style.background = '#161616';
-            e.currentTarget.style.color      = '#e5e7eb';
+            e.currentTarget.style.color = '#e5e7eb';
           }
         }}
         onMouseLeave={e => {
           if (!isActive) {
-            e.currentTarget.style.border     = '1px solid transparent';
-            e.currentTarget.style.boxShadow  = 'none';
+            e.currentTarget.style.border = '1px solid transparent';
+            e.currentTarget.style.boxShadow = 'none';
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color      = '';
+            e.currentTarget.style.color = '';
           }
         }}
       >
@@ -109,7 +124,7 @@ const Sidebar = ({ activeTab }: SidebarProps) => {
               {sidebarData?.name ?? '—'}
             </span>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ background: accent }} />
+              <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ background: Accent }} />
               <span className="text-[10px] text-gray-500 truncate">
                 {sidebarData?.email ?? '—'}
               </span>

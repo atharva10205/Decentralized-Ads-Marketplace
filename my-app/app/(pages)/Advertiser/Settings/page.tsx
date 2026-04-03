@@ -128,7 +128,7 @@ const Settings = () => {
 
     return (
         <div className="flex h-screen bg-[#0a0a0a] text-gray-300">
-            <Sidebar activeTab={activeTab}  />
+            <Sidebar activeTab={activeTab} SidebarAccent={accent}  />
 
             <main className="flex-1 p-8 overflow-y-auto">
                 <div className="max-w-6xl">

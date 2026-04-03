@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { Target, MousePointerClick, DollarSign, Plus } from 'lucide-react';
 import Sidebar from '../Sidebar/Sidebar';
 import { useSession } from "next-auth/react";
-import { useQuery } from '@tanstack/react-query';
 import { useRef, useEffect, useState } from 'react';
 import Chart from 'chart.js/auto';
 
@@ -34,6 +33,7 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
 };
 
 
+
 const BarChart = ({
     campaigns,
     metric,
@@ -49,6 +49,7 @@ const BarChart = ({
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const chartRef = useRef<any>(null);
+
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -180,7 +181,6 @@ const LineChart = ({ color, dailySpend }: { color: string; dailySpend: { day: st
 
     return (
         <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.5)] w-full">
-            {/* Header */}
             <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#1a1a1a]">
                 <div>
                     <h2 className="text-sm font-semibold font-mono text-white">Daily Spend</h2>
@@ -192,7 +192,6 @@ const LineChart = ({ color, dailySpend }: { color: string; dailySpend: { day: st
                 </div>
             </div>
 
-            {/* Chart */}
             <div className="px-4 pt-3 pb-2 relative w-full" style={{ paddingBottom: '28%' }}>
                 <svg
                     viewBox={`0 0 ${W} ${H}`}
@@ -213,7 +212,6 @@ const LineChart = ({ color, dailySpend }: { color: string; dailySpend: { day: st
                         </filter>
                     </defs>
 
-                    {/* Grid lines */}
                     {Array.from({ length: gridLines + 1 }).map((_, i) => {
                         const y = padT + (i / gridLines) * chartH;
                         const val = peak * (1 - i / gridLines);
@@ -229,18 +227,14 @@ const LineChart = ({ color, dailySpend }: { color: string; dailySpend: { day: st
                         );
                     })}
 
-                    {/* Area fill */}
                     <path d={areaPath} fill="url(#spendAreaFill)" />
 
-                    {/* Glow line */}
                     <path d={linePath} fill="none" stroke={accentAlpha(0.4)} strokeWidth="1.5"
                         strokeLinecap="round" strokeLinejoin="round" filter="url(#spendGlow)" />
 
-                    {/* Main line */}
                     <path d={linePath} fill="none" stroke={ACCENT} strokeWidth="1.5"
                         strokeLinecap="round" strokeLinejoin="round" />
 
-                    {/* Hover crosshair */}
                     {hoveredIdx !== null && (
                         <line
                             x1={points[hoveredIdx].x} y1={padT}
@@ -249,7 +243,6 @@ const LineChart = ({ color, dailySpend }: { color: string; dailySpend: { day: st
                         />
                     )}
 
-                    {/* Points + hover zones */}
                     {points.map((pt, i) => {
                         const isHovered = hoveredIdx === i;
                         const tipW = 130;
@@ -373,12 +366,24 @@ const Dashboard = () => {
     const router = useRouter();
     const { status } = useSession();
 
-    const { data, isLoading, error } = useQuery<DashboardData>({
-        queryKey: ['advertiser-dashboard'],
-        queryFn: fetchDashboardData,
-        enabled: status === 'authenticated',
-    });
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(false);
 
+    useEffect(() => {
+        if (status !== 'authenticated') return;
+        const fetch = async () => {
+            try {
+                const res = await fetchDashboardData();
+                setData(res);
+            } catch {
+                setError(true);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetch();
+    }, [status]);
     const accent = data?.accent ?? DEFAULT_ACCENT;
     const campaigns: Campaign[] = data?.campaigns ?? [];
 
@@ -425,7 +430,6 @@ const Dashboard = () => {
             <main className="flex-1 font-mono overflow-auto">
                 <div className="p-6 space-y-3">
 
-                    {/* Header */}
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-sm font-semibold text-white">Dashboard</h1>
@@ -441,7 +445,6 @@ const Dashboard = () => {
                         </button>
                     </div>
 
-                    {/* Stat Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <StatCard label="Active Campaigns" value={String(activeCampaigns)} icon={Target} />
                         <StatCard
@@ -458,7 +461,6 @@ const Dashboard = () => {
                         />
                     </div>
 
-                    {/* Campaign breakdown card */}
                     <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
                         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#1a1a1a]">
                             <div>
@@ -509,7 +511,7 @@ const Dashboard = () => {
                                                         <div
                                                             className="absolute inset-y-0 left-0 rounded-sm transition-all duration-700"
                                                             style={{
-                                                                width: `${c.performance}%`, // ✅ now = click share %
+                                                                width: `${c.performance}%`,
                                                                 background: c.status === 'Active'
                                                                     ? `linear-gradient(90deg, rgba(0,0,0,0.3), ${accent})`
                                                                     : '#3f3f46',
@@ -518,7 +520,7 @@ const Dashboard = () => {
                                                         />
                                                     </div>
                                                     <span className="text-xs text-gray-500 tabular-nums flex-shrink-0 w-20 text-right whitespace-nowrap">
-                                                        {c.performance}% clicks  {/* ✅ label updated */}
+                                                        {c.performance}% clicks
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-1.5">
@@ -562,7 +564,6 @@ const Dashboard = () => {
                         )}
                     </div>
 
-                    {/* Bar charts — only render when there are campaigns */}
                     {campaigns.length > 0 && (
                         <div className="flex gap-3 overflow-x-auto pb-1"
                             style={{ scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}>
