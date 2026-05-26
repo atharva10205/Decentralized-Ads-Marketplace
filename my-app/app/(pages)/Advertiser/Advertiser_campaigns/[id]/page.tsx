@@ -61,6 +61,8 @@ const CampaignPage = () => {
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [withdrawAddress, setWithdrawAddress] = useState('');
     const [withdrawing, setWithdrawing] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [withdrawnAmount, setWithdrawnAmount] = useState<string>('');
 
 
     const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL!);
@@ -201,30 +203,135 @@ const CampaignPage = () => {
 
 
     const Withdraw = async () => {
-
         if (!ad || !wallet.publicKey) {
             alert("Please connect your wallet first");
             return;
         }
-        const program = getProgram(wallet, walletConnection);
-        const adID = adIdToBytes(ad.id);
-        const { adPDA, vaultPDA: refundVaultPDA } = getPDA(new PublicKey(Wallet_Address), adID);
 
-        const tx = await program.methods.refund().accounts({
-            vault: refundVaultPDA,
-            ad: adPDA,
-            advertiserKey: new PublicKey(Wallet_Address),
-            recipient: new PublicKey(withdrawAddress),
-            signer: wallet.publicKey,
-            system_program: SystemProgram.programId,
-        }).rpc();
 
-        if(tx){ 
- console.log("tx",tx)
+
+        if (!withdrawAddress.trim()) {
+            alert("Please enter a recipient address");
+            return;
         }
-       
 
-    }
+        let recipientPubkey: PublicKey;
+        try {
+            recipientPubkey = new PublicKey(withdrawAddress);
+        } catch (err) {
+            alert("Invalid recipient address");
+            return;
+        }
+
+        if (wallet.publicKey.toString() !== Wallet_Address) {
+            alert("You must be connected with the advertiser wallet to withdraw funds");
+            return;
+        }
+
+        setWithdrawing(true);
+
+        try {
+            const program = getProgram(wallet, walletConnection);
+            const adID = adIdToBytes(ad.id);
+            const advertiserKey = new PublicKey(Wallet_Address);
+
+            const PROGRAM_ID = new PublicKey("5AhkXaS77PEWP8pDdQx3SMDbEizqJFns6an8J42dXUuw");
+
+
+
+            const [adPDA] = PublicKey.findProgramAddressSync(
+                [
+                    Buffer.from("ad"),
+                    advertiserKey.toBuffer(),
+                    Buffer.from(adID),
+                ],
+                PROGRAM_ID
+            );
+
+            const adAccount = await program.account.ad.fetch(adPDA);
+            console.log("Ad advertiser:", adAccount.advertiser.toString());
+            console.log("Connected wallet:", wallet.publicKey.toString());
+            console.log("Match:", adAccount.advertiser.equals(wallet.publicKey));
+
+            if (!adAccount.advertiser.equals(wallet.publicKey)) {
+                alert("Connected wallet doesn't match the ad's advertiser on-chain");
+                setWithdrawing(false);
+                return;
+            }
+
+
+            const [vaultPDA] = PublicKey.findProgramAddressSync(
+                [
+                    Buffer.from("vault"),
+                    advertiserKey.toBuffer(),
+                    Buffer.from(adID),
+                ],
+                PROGRAM_ID
+            );
+
+            const vaultBalance = await walletConnection.getBalance(vaultPDA);
+            console.log("Vault balance:", vaultBalance / 1e9, "SOL");
+
+            if (vaultBalance === 0) {
+                alert("No funds available in vault");
+                setWithdrawing(false);
+                return;
+            }
+
+            const txn = await program.methods
+                .refund()
+                .accounts({
+                    vault: vaultPDA,
+                    ad: adPDA,
+                    advertiserKey: advertiserKey,
+                    recipient: recipientPubkey,
+                    signer: wallet.publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .transaction();
+
+            const { blockhash, lastValidBlockHeight } = await walletConnection.getLatestBlockhash();
+            txn.recentBlockhash = blockhash;
+            txn.feePayer = wallet.publicKey;
+
+            const signature = await wallet.sendTransaction(txn, walletConnection);
+
+            await walletConnection.confirmTransaction(
+                { signature, blockhash, lastValidBlockHeight },
+                'confirmed'
+            );
+
+            console.log(" Transaction successful!", signature);
+
+            await fetch(`/api/crud/Advertiser/Advertiser-campaign/${id}`, {
+                method: 'PUT',
+            });
+
+            setAd(prev => prev ? { ...prev, status: false, RemainingAmount: 0 } : prev);
+            setVaultBalance(0);
+            setShowWithdrawModal(false);
+            setWithdrawAddress('');
+
+            setWithdrawnAmount((vaultBalance / 1e9).toFixed(6));
+            setShowSuccessModal(true);
+
+        } catch (err: any) {
+            console.error("Withdrawal failed:", err);
+
+            if (err.message?.includes("Unauthorized")) {
+                alert("Unauthorized: You must be the advertiser to withdraw funds");
+            } else if (err.message?.includes("InvalidAmount")) {
+                alert("Invalid amount: Vault may be empty or below minimum rent");
+            } else if (err.logs) {
+                console.error("Program logs:", err.logs);
+                alert(`Transaction failed. Check console for details.`);
+            } else {
+                alert(`Withdrawal failed: ${err.message || "Unknown error"}`);
+            }
+        } finally {
+            setWithdrawing(false);
+        }
+    };
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-gray-300 p-8">
             <div className="max-w-3xl mx-auto">
@@ -315,7 +422,6 @@ const CampaignPage = () => {
                     ))}
                 </div>
 
-                {/* Campaign Details */}
                 <div className="bg-[#111111] border border-gray-800/70 rounded-xl p-6 space-y-5">
                     <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-widest font-mono">Campaign Details</h2>
 
@@ -339,7 +445,6 @@ const CampaignPage = () => {
                         </div>
                     ))}
 
-                    {/* Keywords */}
                     <div>
                         <p className="text-xs text-gray-600 uppercase tracking-widest font-mono mb-1.5">Keywords (comma separated)</p>
                         {editing ? (
@@ -357,7 +462,6 @@ const CampaignPage = () => {
                         )}
                     </div>
 
-                    {/* Tags */}
                     <div>
                         <div className="flex items-center justify-between mb-1.5">
                             <p className="text-xs text-gray-600 uppercase tracking-widest font-mono">Tags</p>
@@ -392,7 +496,6 @@ const CampaignPage = () => {
                                     </div>
                                 )}
 
-                                {/* Niche grid */}
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                                     {niches.map((niche) => {
                                         const tagText = `${niche.emoji} ${niche.label}`;
@@ -482,7 +585,6 @@ const CampaignPage = () => {
                 </div>
 
             </div>
-            {/* Withdraw Confirmation Modal */}
             {showWithdrawModal && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -512,7 +614,6 @@ const CampaignPage = () => {
                             </button>
                         </div>
 
-                        {/* Available Balance */}
                         <div
                             className="rounded-xl p-4"
                             style={{ background: alpha(0.04), border: `1px solid ${alpha(0.12)}` }}
@@ -523,7 +624,6 @@ const CampaignPage = () => {
                             </p>
                         </div>
 
-                        {/* Warning Note */}
                         <div
                             className="flex gap-3 rounded-xl p-4"
                             style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
@@ -534,7 +634,6 @@ const CampaignPage = () => {
                             </p>
                         </div>
 
-                        {/* Wallet Address Input */}
                         <div>
                             <label className="text-xs text-gray-500 uppercase tracking-widest font-mono mb-2 block">
                                 Recipient Wallet Address
@@ -549,7 +648,6 @@ const CampaignPage = () => {
                             />
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex gap-3 pt-1">
                             <button
                                 onClick={() => { setShowWithdrawModal(false); setWithdrawAddress(''); }}
@@ -559,23 +657,7 @@ const CampaignPage = () => {
                             </button>
                             <button
                                 disabled={withdrawing || !withdrawAddress.trim()}
-                                onClick={async () => {
-                                    setWithdrawing(true);
-                                    try {
-                                        await Withdraw();
-                                        await fetch(`/api/crud/Advertiser/Advertiser-campaign/${id}`, {
-                                            method: 'PUT',
-                                        });
-                                        setAd(prev => prev ? { ...prev, status: false, RemainingAmount: 0 } : prev);
-                                        setVaultBalance(0);
-                                        setShowWithdrawModal(false);
-                                        setWithdrawAddress('');
-                                    } catch (err) {
-                                        console.error("Withdraw failed:", err);
-                                    } finally {
-                                        setWithdrawing(false);
-                                    }
-                                }}
+                                onClick={Withdraw}
                                 className="flex-1 px-4 py-2.5 rounded-xl text-sm font-mono font-semibold flex items-center justify-center gap-2 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                                 style={{ background: alpha(0.12), border: `1px solid ${alpha(0.35)}`, color: accent }}
                             >
@@ -586,6 +668,63 @@ const CampaignPage = () => {
                     </div>
                 </div>
             )}
+            {showSuccessModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+                    onClick={e => { if (e.target === e.currentTarget) setShowSuccessModal(false); }}
+                >
+                    <div
+                        className="w-full max-w-md rounded-2xl p-6 space-y-5"
+                        style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.07)' }}
+                    >
+                        <div className="flex flex-col items-center text-center gap-4 py-2">
+                            <div
+                                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                                style={{ background: alpha(0.08), border: `1px solid ${alpha(0.2)}` }}
+                            >
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-white font-mono font-semibold text-base mb-1">Withdrawal Successful</h3>
+                                <p className="text-gray-500 font-mono text-xs leading-relaxed">Your funds have been sent to the recipient wallet.</p>
+                            </div>
+                            <div
+                                className="rounded-xl px-5 py-3 w-full text-center"
+                                style={{ background: alpha(0.05), border: `1px solid ${alpha(0.15)}` }}
+                            >
+                                <p className="text-xs text-gray-600 font-mono uppercase tracking-widest mb-1">Amount Withdrawn</p>
+                                <p className="text-2xl font-bold font-mono" style={{ color: accent }}>{withdrawnAmount} SOL</p>
+                            </div>
+                            <div className="w-full rounded-xl px-4 py-3" style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <p className="text-xs text-gray-600 font-mono uppercase tracking-widest mb-1">Recipient</p>
+                                <p className="text-sm text-gray-300 font-mono truncate">{withdrawAddress.slice(0, 8)}...{withdrawAddress.slice(-8)}</p>
+                            </div>
+                            <div
+                                className="flex gap-3 rounded-xl p-4 w-full text-left"
+                                style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
+                            >
+                                <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                                <p className="text-xs text-red-400 font-mono leading-relaxed">
+                                    Campaign has been <span className="text-red-300 font-semibold">paused</span>. Top up your vault to reactivate it.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowSuccessModal(false)}
+                                className="w-full px-4 py-2.5 rounded-xl text-sm font-mono font-semibold transition-all duration-150"
+                                style={{ background: alpha(0.08), border: `1px solid ${alpha(0.2)}`, color: accent }}
+                                onMouseEnter={e => { e.currentTarget.style.background = alpha(0.15); }}
+                                onMouseLeave={e => { e.currentTarget.style.background = alpha(0.08); }}
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

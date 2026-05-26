@@ -54,11 +54,6 @@ export async function GET() {
         return Number(total) + Number(adCost);
     }, 0);
 
-    console.log("Total Earnings:", totalEarnings);
-    console.log("Total Impressions:", totalImpressions._sum.impression);
-    console.log("activewebsites:", active_websites);
-
-
     const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: { accent: true }

@@ -1,4 +1,9 @@
 import { selectAdsForPublisher } from "../AD_MATCHING_SYSTEM/route";
+import crypto from 'crypto';
+
+
+const SECRET = process.env.TRACKING_SECRET!;
+
 
 function corsHeaders() {
   return {
@@ -6,6 +11,13 @@ function corsHeaders() {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
+}
+
+function createTrackingToken(adId: string, publisherUrl: string): string {
+  const payload = { adId, publisherUrl, exp: Date.now() + 240 * 1000 };
+  const data = JSON.stringify(payload);
+  const sig = crypto.createHmac('sha256', SECRET).update(data).digest('hex');
+  return Buffer.from(JSON.stringify({ data, sig })).toString('base64url');
 }
 
 export async function OPTIONS() {
@@ -28,11 +40,27 @@ export async function GET(request: Request) {
   }
 
   try {
-    const ads = await selectAdsForPublisher(publisher_website_url, true);
 
+    const ads = await selectAdsForPublisher(publisher_website_url, true) as any[];
 
+    if (!ads || ads.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: "No ads available" }),
+        { status: 404, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+      );
+    }
 
     const randomAd = ads[Math.floor(Math.random() * ads.length)];
+
+    const token = createTrackingToken(randomAd.id, publisher_website_url);
+
+    const adData = JSON.stringify({
+      adId: randomAd.id,
+      publisher_url: publisher_website_url,
+      targetUrl: randomAd.destinationUrl,
+      trackingToken: token
+    });
+
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -40,13 +68,7 @@ export async function GET(request: Request) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ad Template</title>
-      <script>
-        window.AD_DATA = {
-          adId: "${randomAd.id}",
-          publisher_url: "${publisher_website_url}",
-          targetUrl: "${randomAd.destination_url}"
-        };
-    </script>
+    <script>window.AD_DATA = ${adData};</script>
     <style>
         * {
             margin: 0;

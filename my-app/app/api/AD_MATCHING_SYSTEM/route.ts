@@ -64,9 +64,10 @@ async function GetEligebleAd() {
         select: { id: true, RemainingAmount: true, cost_per_click: true, Clicks: true }
     });
 
-    const eligible = allAds.filter(ad =>
-        ad.RemainingAmount! > Number(ad.cost_per_click!) * (ad.Clicks ?? 0)
-    );
+   const eligible = allAds.filter(ad =>
+    ad.RemainingAmount! > Number(ad.cost_per_click!) * (ad.Clicks ?? 0)
+);
+console.log(`Total ads: ${allAds.length}, Eligible: ${eligible.length}`);
 
     if (eligible.length <= 100) {
         return prisma.ad.findMany({
@@ -103,7 +104,6 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
     try {
         const cached = await redis.get(cacheKey)
         if (cached) {
-            console.log(`Cache HIT for publisher: ${website_url}`);
 
 
             if (logImpression) {
@@ -125,7 +125,7 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
         where: { website_url: website_url }
     })
 
-    if (!publisher || publisher.status == "active") return [];//paimon
+    if (!publisher || publisher.status !== "ACTIVE") return [];
 
     const ads = await GetEligebleAd();
 
@@ -180,10 +180,11 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
 
     try {
         await redis.setex(cacheKey, CACHE_TTL, result);
-        console.log(`Cached results for publisher: ${website_url}`);
+       
     } catch (error) {
         console.log("error", error)
     }
+
 
     return result;
 }
@@ -208,7 +209,7 @@ async function Endpoint(req, res) {
         return res.status(404).json({ success: false });
     }
 
-    const ads = await selectAdsForPublisher(publisher.id, true);
+    const ads = await selectAdsForPublisher(publisher.website_url, true);
 
     if (!ads.length) {
         return res.json({ success: false });

@@ -98,34 +98,66 @@ const Campaigns = () => {
 
                 const enriched = await Promise.all(
                     rawCampaigns.map(async (c: any) => {
-                        const advertiserPubkey = new PublicKey(c.wallet_address);
-                        const [advertiserVault] = PublicKey.findProgramAddressSync(
-                            [Buffer.from("vault"), advertiserPubkey.toBuffer(), adIdToBytes(c.id)],
-                            programId
-                        );
-                        const vaultBalance = await connection.getBalance(advertiserVault);
-                        const spent = (c.clicks ?? 0) * Number(c.cost_per_click ?? 0);
-                        const budget = Number(c.Cost ?? 0);
-                        const cpc = c.cost_per_click ? Number(c.cost_per_click) : 0;
-                        const isInsufficient = vaultBalance / 1e9 < cpc;
+                        if (!c.wallet_address) {
+                            console.warn(`Campaign ${c.id} has no wallet_address, skipping vault balance check`);
+                            const spent = (c.clicks ?? 0) * Number(c.cost_per_click ?? 0);
+                            const budget = Number(c.Cost ?? 0);
+                            const cpc = c.cost_per_click ? Number(c.cost_per_click) : 0;
 
-                        if (isInsufficient) {
-                            await fetch("/api/crud/Advertiser/Campaings", {
-                                method: "PATCH",
-                                headers: { "content-type": "application/json" },
-                                body: JSON.stringify({ id: c.id, status: false })
-                            });
+                            return {
+                                ...c,
+                                vaultBalance: 0,
+                                spent: parseFloat(spent.toFixed(6)),
+                                percentUsed: budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0,
+                                cpc: cpc.toFixed(6),
+                                isInsufficient: true,
+                            };
                         }
 
-                        return {
-                            ...c,
-                            status: isInsufficient ? false : c.status,
-                            vaultBalance,
-                            spent: parseFloat(spent.toFixed(6)),
-                            percentUsed: budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0,
-                            cpc: cpc.toFixed(6),
-                            isInsufficient,
-                        };
+                        try {
+                            const advertiserPubkey = new PublicKey(c.wallet_address);
+                            const [advertiserVault] = PublicKey.findProgramAddressSync(
+                                [Buffer.from("vault"), advertiserPubkey.toBuffer(), adIdToBytes(c.id)],
+                                programId
+                            );
+                            const vaultBalance = await connection.getBalance(advertiserVault);
+                            const spent = (c.clicks ?? 0) * Number(c.cost_per_click ?? 0);
+                            const budget = Number(c.Cost ?? 0);
+                            const cpc = c.cost_per_click ? Number(c.cost_per_click) : 0;
+                            const isInsufficient = vaultBalance / 1e9 < cpc;
+
+                            if (isInsufficient) {
+                                await fetch("/api/crud/Advertiser/Campaings", {
+                                    method: "PATCH",
+                                    headers: { "content-type": "application/json" },
+                                    body: JSON.stringify({ id: c.id, status: false })
+                                });
+                            }
+
+                            return {
+                                ...c,
+                                status: isInsufficient ? false : c.status,
+                                vaultBalance,
+                                spent: parseFloat(spent.toFixed(6)),
+                                percentUsed: budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0,
+                                cpc: cpc.toFixed(6),
+                                isInsufficient,
+                            };
+                        } catch (error) {
+                            console.error(`Error processing campaign ${c.id}:`, error);
+                            const spent = (c.clicks ?? 0) * Number(c.cost_per_click ?? 0);
+                            const budget = Number(c.Cost ?? 0);
+                            const cpc = c.cost_per_click ? Number(c.cost_per_click) : 0;
+
+                            return {
+                                ...c,
+                                vaultBalance: 0,
+                                spent: parseFloat(spent.toFixed(6)),
+                                percentUsed: budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0,
+                                cpc: cpc.toFixed(6),
+                                isInsufficient: true,
+                            };
+                        }
                     })
                 );
 
