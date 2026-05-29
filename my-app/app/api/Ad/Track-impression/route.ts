@@ -17,36 +17,44 @@ let isFlushScheduled = false;
 
 async function flushImpressions() {
     if (impression_queue.size === 0) {
+        console.log('[Impression Flush] Queue is empty — skipping flush');
         isFlushScheduled = false;
         return;
     }
+
+    console.log(`[Impression Flush] Starting — ${impression_queue.size} unique keys in queue`);
 
     const to_flush = new Map(impression_queue);
     impression_queue.clear();
     isFlushScheduled = false;
 
-    try {
-        await Promise.all(
-            Array.from(to_flush.entries()).map(async ([key, count]) => {
-                const [adId, publisher_url] = key.split('|');
+    const results = await Promise.allSettled(
+        Array.from(to_flush.entries()).map(async ([key, count]) => {
+            const [adId, publisher_url] = key.split('|');
 
-                const publisher = await prisma.publisher.findUnique({
-                    where: {
-                        website_url: publisher_url
-                    }
-                });
+            if (!adId || !publisher_url) {
+                console.error(`[Impression Flush] Malformed queue key: "${key}" — skipping`);
+                return;
+            }
 
-                if (!publisher) {
-                    console.error(`Publisher not found for URL: ${publisher_url}`);
-                    return;
-                }
+            console.log(`[Impression Flush] Processing — adId: ${adId}, publisher_url: ${publisher_url}, count: ${count}`);
 
+            const publisher = await prisma.publisher.findUnique({
+                where: { website_url: publisher_url }
+            });
+
+            if (!publisher) {
+                console.error(`[Impression Flush] Publisher NOT FOUND — url: "${publisher_url}" | adId: ${adId} | impressions LOST: ${count}`);
+                return;
+            }
+
+            try {
                 await prisma.impression.upsert({
                     where: {
                         ad_id_publisher_id_publisher_url: {
                             ad_id: adId,
-                            publisher_id: publisher.id ,
-                            publisher_url:publisher_url
+                            publisher_id: publisher.id,
+                            publisher_url: publisher_url
                         }
                     },
                     update: {
@@ -54,49 +62,66 @@ async function flushImpressions() {
                     },
                     create: {
                         ad_id: adId,
-                        publisher_id: publisher.id, 
-                        publisher_url:publisher_url,
+                        publisher_id: publisher.id,
+                        publisher_url: publisher_url,
                         impression: count,
                     },
                 });
-            })
-        );
-    } catch (error) {
-        console.error('Error flushing', error);
-    }
+
+                console.log(`[Impression Flush] Upsert success — adId: ${adId}, publisher: ${publisher.id}, count: ${count}`);
+            } catch (dbError) {
+                console.error(`[Impression Flush]  DB upsert FAILED — adId: ${adId}, publisher_url: ${publisher_url}, count: ${count}`, dbError);
+            }
+        })
+    );
+
+    results.forEach((result, i) => {
+        if (result.status === 'rejected') {
+            console.error(`[Impression Flush] Unexpected rejection at index ${i}:`, result.reason);
+        }
+    });
+
+    console.log(`[Impression Flush] Done — ${results.length} entries processed`);
 }
 
-function FlushSchedule(delay = 1000) {
+function FlushSchedule(delay = 5000) {
     if (!isFlushScheduled) {
         isFlushScheduled = true;
+        console.log(`[Impression Flush] Scheduled in ${delay}ms — queue size: ${impression_queue.size}`);
         setTimeout(() => flushImpressions(), delay);
     }
 }
 
 export async function POST(request: Request) {
     try {
-        const { adId, publisher_url } = await request.json();
+        const body = await request.json();
+        const { adId, publisher_url } = body;
+
+        if (!adId || !publisher_url) {
+            console.error(`[Track Impression] Missing fields — adId: ${adId}, publisher_url: ${publisher_url}`);
+            return new Response(
+                JSON.stringify({ success: false, error: "Missing adId or publisher_url" }),
+                { status: 400, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+            );
+        }
 
         const key = `${adId}|${publisher_url}`;
-        impression_queue.set(key, (impression_queue.get(key) || 0) + 1);
+        const prev = impression_queue.get(key) || 0;
+        impression_queue.set(key, prev + 1);
+
+        console.log(`[Track Impression] Queued — adId: ${adId}, publisher_url: ${publisher_url}, queue_count: ${prev + 1}`);
+
         FlushSchedule();
 
-      
         return new Response(
             JSON.stringify({ success: true }),
-            {
-                status: 200,
-                headers: { ...corsHeaders(), "Content-Type": "application/json" }
-            }
+            { status: 200, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
         );
     } catch (error) {
-        console.log(error);
+        console.error('[Track Impression]  POST handler crashed — likely malformed JSON body:', error);
         return new Response(
             JSON.stringify({ success: false, error: String(error) }),
-            {
-                status: 500,
-                headers: { ...corsHeaders(), "Content-Type": "application/json" }
-            }
+            { status: 500, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
         );
     }
 }

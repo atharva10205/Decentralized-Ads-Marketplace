@@ -81,17 +81,10 @@
       }
 
       if (window.AD_DATA) {
-        console.log('[Widget] AD_DATA found:', {
-          adId: window.AD_DATA.adId,
-          publisher_url: window.AD_DATA.publisher_url,
-          hasToken: !!window.AD_DATA.trackingToken
-        });
-
         trackImpression(window.AD_DATA.adId, window.AD_DATA.publisher_url);
 
         const adLink = container.querySelector('.ad-container');
         if (adLink) {
-          console.log('[Widget] Click listener attached');
           adLink.addEventListener('click', (e) => {
             e.preventDefault();
             console.log('[Widget] Ad clicked');
