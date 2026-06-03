@@ -15,7 +15,7 @@ export async function GET() {
                 where: { user_email: session.user.email },
                 select: {
                     id: true,
-                    wallet_address:true,
+                    wallet_address: true,
                     destination_url: true,
                     business_name: true,
                     status: true,
@@ -27,7 +27,7 @@ export async function GET() {
             }),
             prisma.user.findUnique({
                 where: { email: session.user.email },
-                select: {id:true , accent: true }
+                select: { id: true, accent: true }
             })
         ]);
 
@@ -57,11 +57,11 @@ export async function GET() {
         for (const click of ClickData) {
             clickMap[click.ad_id] = (clickMap[click.ad_id] ?? 0) + 1;
         }
-
         const campaigns = Advertisers.map(ad => ({
             ...ad,
             impression: impressionMap[ad.id] ?? 0,
             clicks: clickMap[ad.id] ?? 0,
+            totalOwed: (clickMap[ad.id] ?? 0) * Number(ad.cost_per_click),
         }));
 
         return NextResponse.json({ campaigns, accent });

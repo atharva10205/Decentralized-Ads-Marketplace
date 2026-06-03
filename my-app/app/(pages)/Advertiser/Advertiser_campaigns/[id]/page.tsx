@@ -151,14 +151,6 @@ const CampaignPage = () => {
             setAd(data.ad);
             setAnalytics(data.analytics);
 
-            const PROGRAM_ID = new PublicKey("5AhkXaS77PEWP8pDdQx3SMDbEizqJFns6an8J42dXUuw");
-            const [vaultPDACheck] = PublicKey.findProgramAddressSync(
-                [Buffer.from("vault"), advertiserKey.toBuffer(), Buffer.from(AdId)],
-                PROGRAM_ID
-            );
-            const lamports = await walletConnection.getBalance(vaultPDACheck);
-            setVaultBalance(Math.max((lamports / 1e9) - (unclaimedClicks * cpcSOL), 0));
-
             setAddFundsDepositedSOL(addFundsTotalSOL.toFixed(6));
             setAddFundsSuccess(true);
         } catch (err: any) {
@@ -208,7 +200,7 @@ const CampaignPage = () => {
 
     useEffect(() => {
         const fetchVaultBalance = async () => {
-            if (!Wallet_Address || !ad?.id) return;
+            if (!Wallet_Address || !ad?.id || !analytics) return;
             try {
                 const PROGRAM_ID = new PublicKey("5AhkXaS77PEWP8pDdQx3SMDbEizqJFns6an8J42dXUuw");
                 const adId = adIdToBytes(ad.id);
@@ -218,16 +210,15 @@ const CampaignPage = () => {
                 );
                 const lamports = await connection.getBalance(vaultPDA);
                 const cpc = Number(ad.cost_per_click ?? 0);
-                const reservedForClicks = unclaimedClicks * cpc;
-                const sol = (lamports / 1e9) - reservedForClicks;
-                setVaultBalance(Math.max(sol, 0));
+                const totalOwedLamports = Math.round(analytics.totalClicks * cpc * 1e9);
+                const withdrawableLamports = Math.max(0, lamports - totalOwedLamports);
+                setVaultBalance(withdrawableLamports / 1e9);
             } catch (err) {
                 console.error("Failed to fetch vault balance:", err);
             }
         };
         fetchVaultBalance();
-    }, [Wallet_Address, ad?.id, unclaimedClicks]);
-
+    }, [Wallet_Address, ad?.id, analytics]);
     const removeTag = (tag: string) => setSelectedTags(prev => prev.filter(t => t !== tag));
 
     const handleSave = async () => {
@@ -283,12 +274,18 @@ const CampaignPage = () => {
             const [vaultPDA] = PublicKey.findProgramAddressSync(
                 [Buffer.from("vault"), advertiserKey.toBuffer(), Buffer.from(adID)], PROGRAM_ID
             );
+            const rawLamports = await walletConnection.getBalance(vaultPDA);
+            const cpc = Number(ad.cost_per_click ?? 0);
+            const totalOwedLamports = Math.round((analytics?.totalClicks ?? 0) * cpc * 1e9);
+            const withdrawableLamports = Math.max(0, rawLamports - totalOwedLamports);
 
-            const vaultBalance = await walletConnection.getBalance(vaultPDA);
-
-            if (vaultBalance === 0) { alert("No funds available in vault"); setWithdrawing(false); return; }
-
-            const txn = await program.methods.refund().accounts({
+            console.log("withdrawable SOL:", withdrawableLamports / 1e9);
+            if (withdrawableLamports === 0) {
+                alert("No withdrawable funds — remaining balance is reserved for publisher payouts");
+                setWithdrawing(false);
+                return;
+            }
+            const txn = await program.methods.refund(new BN(withdrawableLamports)).accounts({
                 vault: vaultPDA, ad: adPDA, advertiserKey, recipient: recipientPubkey,
                 signer: wallet.publicKey, systemProgram: SystemProgram.programId,
             }).transaction();
@@ -307,7 +304,7 @@ const CampaignPage = () => {
                 body: JSON.stringify({
                     tx_signature: signature,
                     publisher_wallet: withdrawAddress,
-                    total_amount: vaultBalance,
+                    total_amount: withdrawableLamports,
                 }),
             });
 
@@ -315,7 +312,7 @@ const CampaignPage = () => {
             setVaultBalance(0);
             setShowWithdrawModal(false);
             setWithdrawAddress('');
-            setWithdrawnAmount((vaultBalance / 1e9).toFixed(6));
+            setWithdrawnAmount((withdrawableLamports / 1e9).toFixed(6));
             setShowSuccessModal(true);
         } catch (err: any) {
             console.error("Withdrawal failed:", err);

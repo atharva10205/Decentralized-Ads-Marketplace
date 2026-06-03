@@ -486,7 +486,12 @@ export const IDL = {
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "withdraw_amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [

@@ -136,12 +136,12 @@ const Campaigns = () => {
                                 programId
                             );
                             const vaultBalance = await connection.getBalance(advertiserVault);
+                            const totalOwedLamports = Math.round((c.totalOwed ?? 0) * 1e9);
+                            const spendableBalance = Math.max(0, vaultBalance - totalOwedLamports);
                             const spent = (c.clicks ?? 0) * Number(c.cost_per_click ?? 0);
                             const budget = Number(c.Cost ?? 0);
                             const cpc = c.cost_per_click ? Number(c.cost_per_click) : 0;
-                            // Don't mark as insufficient during grace period for new campaigns
-                            const isInsufficient = isNewCampaign ? false : (vaultBalance / 1e9 < cpc);
-
+                            const isInsufficient = isNewCampaign ? false : (spendableBalance / 1e9 < cpc);
                             if (isInsufficient && !isNewCampaign) {
                                 await fetch("/api/crud/Advertiser/Campaings", {
                                     method: "PATCH",
@@ -153,7 +153,7 @@ const Campaigns = () => {
                             return {
                                 ...c,
                                 status: isInsufficient ? false : c.status,
-                                vaultBalance,
+                                vaultBalance: spendableBalance,
                                 spent: parseFloat(spent.toFixed(6)),
                                 percentUsed: budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0,
                                 cpc: cpc.toFixed(6),

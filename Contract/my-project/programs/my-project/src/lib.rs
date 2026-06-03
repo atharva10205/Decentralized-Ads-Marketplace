@@ -20,7 +20,7 @@ pub mod my_project {
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         require!(amount > 0, AdError::InvalidAmount);
         ctx.accounts.ad.is_active = true;
-        
+
         let fee = amount
             .checked_mul(PLATFORM_FEE_BASIS_POINTS)
             .ok_or(AdError::Overflow)?
@@ -129,7 +129,7 @@ pub mod my_project {
         Ok(())
     }
 
-    pub fn refund(ctx: Context<Refund>) -> Result<()> {
+    pub fn refund(ctx: Context<Refund>, withdraw_amount: u64) -> Result<()> {
         require_keys_eq!(
             ctx.accounts.ad.advertiser,
             ctx.accounts.signer.key(),
@@ -146,13 +146,17 @@ pub mod my_project {
 
         let rent = Rent::get()?;
         let min_rent = rent.minimum_balance(0);
-        let withdraw_amount = vault_lamports.saturating_sub(min_rent);
-        require!(withdraw_amount > 0, AdError::InvalidAmount);
+        let max_withdrawable = vault_lamports.saturating_sub(min_rent);
 
+        require!(withdraw_amount > 0, AdError::InvalidAmount);
+        require!(
+            withdraw_amount <= max_withdrawable,
+            AdError::InsufficientVault
+        );
         anchor_lang::solana_program::program::invoke_signed(
             &anchor_lang::solana_program::system_instruction::transfer(
                 &ctx.accounts.vault.key(),
-              &ctx.accounts.recipient.key(),
+                &ctx.accounts.recipient.key(),
                 withdraw_amount,
             ),
             &[
