@@ -18,15 +18,15 @@ export async function GET(req: Request) {
         }
     });
 
-    if (res) {
-        return NextResponse.json({ res });
-    }
+   if (res) {
+    return NextResponse.json({ res });
+}
+return NextResponse.json({ error: "Not found" }, { status: 404 });
 }
 
 export async function POST(req: Request) {
     const session = await auth();
-    if (!session || !session.user?.email) return;
-
+if (!session || !session.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { name, email } = await req.json();
 
     const updated = await prisma.user.update({

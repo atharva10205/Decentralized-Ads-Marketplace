@@ -38,12 +38,18 @@ export default function RoleSelection() {
             return;
         }
 
-        router.push(role === "advertiser" ? "/Advertiser/Dashboard" : "/Publisher/Dashboard");
+        if (!res.ok) {
+            setLoading(false);
+            return;
+        }
+
+        await fetch('/api/auth/session?update');
+        await new Promise(r => setTimeout(r, 500)); 
+        window.location.href = role === "advertiser" ? "/Advertiser/Dashboard" : "/Publisher/Dashboard";
     };
 
     return (
         <>
-            {/* ── Loading overlay ── */}
             {loading && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]">
                     <div className="flex flex-col items-center gap-4 bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl p-8 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
@@ -151,7 +157,6 @@ export default function RoleSelection() {
                                                 </div>
                                             </div>
 
-                                            {/* Bottom progress bar */}
                                             <div className="absolute bottom-0 left-0 right-0 h-px overflow-hidden rounded-b-2xl">
                                                 <div
                                                     className="h-full bg-white transition-all duration-300 origin-left"
@@ -164,14 +169,12 @@ export default function RoleSelection() {
                             })}
                         </div>
 
-                        {/* Footer note */}
                         <p className="text-center text-[10px] text-[#2a2a2a] mt-8 uppercase tracking-widest">
                             You can switch roles later in account settings
                         </p>
                     </div>
                 </main>
 
-                {/* ── Footer ── */}
                 <footer className="border-t border-[#141414] px-8 py-5 flex items-center justify-between">
                     <span className="text-[10px] text-[#2a2a2a]">© 2025 AdFlow · Built on Solana</span>
                     <div className="flex gap-5">

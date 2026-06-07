@@ -76,8 +76,8 @@ const Settings = () => {
                 body: JSON.stringify({ role: newRole }),
             });
             if (res.ok) {
-                setCurrentRole(newRole);
-                window.location.reload();
+                await fetch('/api/auth/session', { method: 'GET' });
+                window.location.href = newRole === 'advertiser' ? '/Advertiser/Dashboard' : '/Publisher/Dashboard';
             }
         } catch (error) {
             console.error('Failed to switch role:', error);

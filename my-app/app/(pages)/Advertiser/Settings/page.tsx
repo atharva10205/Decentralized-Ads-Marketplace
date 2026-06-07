@@ -71,10 +71,10 @@ const Settings = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ role: newRole }),
             });
-            if (res.ok) {
-                setCurrentRole(newRole);
-                window.location.reload();
-            }
+           if (res.ok) {
+    await fetch('/api/auth/session', { method: 'GET' });
+    window.location.href = newRole === 'advertiser' ? '/Advertiser/Dashboard' : '/Publisher/Dashboard';
+}
         } catch (error) {
             console.error('Failed to switch role:', error);
         } finally {

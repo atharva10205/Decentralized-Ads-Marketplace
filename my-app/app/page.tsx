@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react';
 import { ArrowRight, Zap, Shield, Droplets, CornerDownLeft, Sparkles, TrendingUp, MousePointer } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-
+import { useSession } from 'next-auth/react';
 const STEPS = [
     { num: '01', phase: 'SETUP', title: 'Create campaign', desc: 'Target, budget in SOL, creative. Three fields.' },
     { num: '02', phase: 'LIVE', title: 'Serve & track', desc: 'Ads hit network. Every click hits the ledger.' },
@@ -26,6 +26,22 @@ export default function GetStarted() {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [clickCount, setClickCount] = useState(0);
     const [particles, setParticles] = useState([]);
+
+    const { data: session, status } = useSession();
+
+    useEffect(() => {
+    if (status === 'loading') return;
+    if (session?.user) {
+        const role = (session.user as any).role;
+        if (!role) {
+            window.location.href = '/Role';
+        } else if (role === 'advertiser') {
+            window.location.href = '/Advertiser/Dashboard';
+        } else if (role === 'publisher') {
+            window.location.href = '/Publisher/Dashboard';
+        }
+    }
+}, [session, status]);
 
     useEffect(() => {
         const handleMouseMove = (e) => {
@@ -98,14 +114,14 @@ export default function GetStarted() {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => signIn('google')}
-                        className="text-sm text-zinc-500 hover:text-zinc-300 transition relative group"
+                        className="text-sm cursor-pointer  text-zinc-500 hover:text-zinc-300 transition relative group"
                     >
                         sign in
                         <span className="absolute -bottom-1 left-0 w-0 h-px bg-zinc-500 group-hover:w-full transition-all" />
                     </button>
                     <button
                         onClick={() => signIn('google')}
-                        className="text-sm px-4 py-1.5 bg-white text-black font-medium hover:bg-zinc-200 transition transform hover:scale-105 active:scale-95"
+                        className="text-sm cursor-pointer px-4 py-1.5 bg-white text-black font-medium hover:bg-zinc-200 transition transform hover:scale-105 active:scale-95"
                     >
                         launch →
                     </button>
@@ -133,7 +149,7 @@ export default function GetStarted() {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => signIn('google')}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-white text-black text-sm font-medium hover:bg-zinc-200 transition transform hover:scale-105 active:scale-95 group"
+                                className="flex cursor-pointer  items-center gap-2 px-6 py-2.5 bg-white text-black text-sm font-medium hover:bg-zinc-200 transition transform hover:scale-105 active:scale-95 group"
                             >
                                 start campaign
                                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -143,7 +159,7 @@ export default function GetStarted() {
                                 className="px-6 py-2.5 border border-zinc-800 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition relative overflow-hidden group"
                             >
                                 <span className="relative z-10">how it works</span>
-                                <span className="absolute inset-0 bg-zinc-800 translate-x-[-100%] group-hover:translate-x-0 transition-transform" />
+                                <span className="absolute cursor-pointer  inset-0 bg-zinc-800 translate-x-[-100%] group-hover:translate-x-0 transition-transform" />
                             </button>
                         </div>
 
