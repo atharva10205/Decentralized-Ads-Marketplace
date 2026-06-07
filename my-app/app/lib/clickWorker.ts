@@ -7,7 +7,6 @@ const MIN_INTERVAL = 60_000;
 const MAX_BACKOFF = 10 * 60_000;
 
 async function processClickQueue(): Promise<void> {
-   console.log('[clickWorker] processClickQueue fired');
   const pipeline = redis.pipeline();
 
   for (let i = 0; i < BATCH_SIZE; i++) {
@@ -61,7 +60,6 @@ declare global {
 
 export function startClickWorker() {
   if (global.__clickWorkerInterval) return;
-   console.log('[clickWorker] startClickWorker called')
 
   global.__clickWorkerRunning = false;
   global.__clickWorkerBackoff = MIN_INTERVAL;

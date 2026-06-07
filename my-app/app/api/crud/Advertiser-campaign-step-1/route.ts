@@ -8,13 +8,7 @@ export async function POST(req: Request) {
         return;
     }
 
-
-
-
     const { businessName, url } = await req.json();
-
-    console.log("businessName", businessName);
-    console.log("url", url);
 
     const existing = await prisma.ad.findFirst({
         where: { destination_url: url }

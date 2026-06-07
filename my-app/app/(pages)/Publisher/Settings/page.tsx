@@ -64,7 +64,6 @@ const Settings = () => {
             body: JSON.stringify({ name: userName, email: userEmail }),
         });
         const data = await res.json();
-        console.log("saved", data);
     };
 
     const handleRoleSwitch = async (newRole: 'advertiser' | 'publisher') => {
@@ -93,7 +92,6 @@ const Settings = () => {
             body: JSON.stringify({ wallet_address: WalletAddress }),
         });
         const data = await res.json();
-        console.log("wallet saved", data);
     };
 
     const handleSaveAccent = async (color: string) => {

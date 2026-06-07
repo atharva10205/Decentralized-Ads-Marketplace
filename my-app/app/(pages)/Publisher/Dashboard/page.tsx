@@ -54,7 +54,6 @@ const fetchWebsites = async (): Promise<Website[]> => {
     const res = await fetch("/api/crud/Publisher/Websites");
     if (!res.ok) throw new Error('Failed to fetch websites');
     const data = await res.json();
-    console.log('websites raw:', JSON.stringify(data).slice(0, 300));
     return Array.isArray(data) ? data : (Array.isArray(data?.sites) ? data.sites : []);
 };
 

@@ -6,9 +6,6 @@ export async function POST(req: Request) {
 
     const { publicKey, maximim_cost_per_bid, click, adID } = await req.json();
 
-    console.log("publicKey:", publicKey);
-    console.log("maximim_cost_per_bid:", maximim_cost_per_bid);
-    console.log("click:", click);
     const totalCost = new Prisma.Decimal(maximim_cost_per_bid).mul(new Prisma.Decimal(click));
 
 

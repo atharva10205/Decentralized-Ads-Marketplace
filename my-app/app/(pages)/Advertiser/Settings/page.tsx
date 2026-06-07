@@ -60,7 +60,6 @@ const Settings = () => {
             body: JSON.stringify({ name: userName, email: userEmail }),
         });
         const data = await res.json();
-        console.log("saved", data);
     };
 
     const handleRoleSwitch = async (newRole: 'advertiser' | 'publisher') => {

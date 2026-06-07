@@ -59,8 +59,6 @@ export async function GET() {
     select: { accent: true }
 });
 
-console.log("user,user",user)
-
 return NextResponse.json({
     active_websites,
     totalImpressions: totalImpressions._sum.impression || 0,
