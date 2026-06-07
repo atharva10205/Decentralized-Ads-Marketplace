@@ -1,24 +1,23 @@
 import { prisma } from "@/app/lib/prisma";
 import { redis } from "@/app/lib/redis";
-import { getAdCPC, getPublisher } from "../api/Ad/Track-click/route";
+import { getAdCPC, getPublisher } from "@/app/lib/adCache";
 
 const BATCH_SIZE = 100;
 const MIN_INTERVAL = 60_000;
-const MAX_BACKOFF = 10 * 60_000; 
+const MAX_BACKOFF = 10 * 60_000;
 
 async function processClickQueue(): Promise<void> {
+   console.log('[clickWorker] processClickQueue fired');
   const pipeline = redis.pipeline();
-  
+
   for (let i = 0; i < BATCH_SIZE; i++) {
     pipeline.lpop("click_queue");
   }
 
   const results = await pipeline.exec();
-
   const raw = results
-    .map((r) => r as string | null)
+    .map((r) => (Array.isArray(r) ? r[1] : r) as string | null)
     .filter(Boolean) as string[];
-
   if (raw.length === 0) return;
 
   const clicks = raw.map((r) => (typeof r === "string" ? JSON.parse(r) : r));
@@ -62,6 +61,7 @@ declare global {
 
 export function startClickWorker() {
   if (global.__clickWorkerInterval) return;
+   console.log('[clickWorker] startClickWorker called')
 
   global.__clickWorkerRunning = false;
   global.__clickWorkerBackoff = MIN_INTERVAL;
@@ -69,7 +69,7 @@ export function startClickWorker() {
   const schedule = () => {
     global.__clickWorkerInterval = setTimeout(async () => {
       if (global.__clickWorkerRunning) {
-        schedule(); 
+        schedule();
         return;
       }
 
@@ -96,7 +96,7 @@ export function startClickWorker() {
         }
       } finally {
         global.__clickWorkerRunning = false;
-        schedule(); 
+        schedule();
       }
     }, global.__clickWorkerBackoff);
   };

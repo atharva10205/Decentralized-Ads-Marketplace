@@ -107,9 +107,8 @@ async function selectAdsForPublisher(website_url, logImpression = false) {
     try {
         const cached = await redis.get(cacheKey)
         if (cached) {
-                    console.log(`Cache Got : ${website_url}`);
 
-            const parsedCache = JSON.parse(cached as string);
+            const parsedCache = typeof cached === 'string' ? JSON.parse(cached) : cached;
             if (logImpression) {
                 const cachedAds = parsedCache as any[];
                 Promise.all(cachedAds.map(ad => logAdImpression(ad.id, website_url, parseFloat(ad.matchScore)))
