@@ -99,9 +99,14 @@ export default function Three({ next, back, adID }) {
     const router = useRouter();
     const { connection } = useConnection();
     const ClintKey = useWallet();
-    const { publicKey: walletPublicKey, connect, disconnect } = ClintKey;
-
+    const { publicKey: walletPublicKey, connect, disconnect, select, wallet } = ClintKey;
     useEffect(() => { setErrors({}); }, [selected, Customclick]);
+
+    useEffect(() => {
+        if (wallet && !walletPublicKey) {
+            connect().catch(err => console.error("Auto-connect failed", err));
+        }
+    }, [wallet]);
 
     const formatSOL = (amount: number): string => parseFloat(amount.toFixed(8)).toString();
 
@@ -171,6 +176,10 @@ export default function Three({ next, back, adID }) {
 
     const connectPhantom = async () => {
         try {
+            if (!wallet) {
+                select("Phantom" as any);
+                return;
+            }
             await connect();
         } catch (err) { console.error("Wallet connection failed", err); }
     };
@@ -253,7 +262,7 @@ export default function Three({ next, back, adID }) {
                                 <h1 className="text-xl font-semibold text-white tracking-tight mb-1">Pay with SOL</h1>
                                 <p className="text-xs text-gray-600 mb-8">Connect your wallet and set your bid strategy</p>
 
-                             {!walletPublicKey && (
+                                {!walletPublicKey && (
                                     <button
                                         onClick={connectPhantom}
                                         className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 transition-all duration-200"
@@ -265,7 +274,7 @@ export default function Three({ next, back, adID }) {
                                     </button>
                                 )}
 
-                              {walletPublicKey && (
+                                {walletPublicKey && (
                                     <div className="space-y-8">
 
                                         <div className="p-4 bg-[#0d0d0d] border border-gray-800/50 rounded-lg">
