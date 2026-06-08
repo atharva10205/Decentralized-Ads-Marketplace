@@ -95,11 +95,11 @@ export default function Three({ next, back, adID }) {
     const [budget, setbudget] = useState(false);
     const [maximim_cost_per_bid, set_maximim_cost_per_bid] = useState<number>(0);
     const [Cost, setCost] = useState<CostItem[]>([]);
-    const [publicKey, setPublicKey] = useState<string | null>("");
     const [errors, setErrors] = useState<Errors>({});
+    const router = useRouter();
     const { connection } = useConnection();
     const ClintKey = useWallet();
-    const router = useRouter();
+    const { publicKey: walletPublicKey, connect, disconnect } = ClintKey;
 
     useEffect(() => { setErrors({}); }, [selected, Customclick]);
 
@@ -107,7 +107,7 @@ export default function Three({ next, back, adID }) {
 
     const Initialize_and_Deposit = async () => {
         const newError: Errors = {};
-        if (!publicKey) { alert("Please connect your wallet first"); return; }
+        if (!walletPublicKey) { alert("Please connect your wallet first"); return; }
         if (selected === "") { newError.selected = "This field is mandatory"; setErrors(newError); return; }
         if (selected === "custom" && Customclick === 0) { newError.click = "This is mandatory"; setErrors(newError); return; }
         if (maximim_cost_per_bid === 0) { newError.maximim_cost_per_bid = "This field is mandatory"; setErrors(newError); return; }
@@ -124,16 +124,16 @@ export default function Three({ next, back, adID }) {
         try {
             const adIdBytes = adIdToBytes(adID);
             const program = getProgram(ClintKey, connection);
-            const { adPDA, vaultPDA } = getPDA(new PublicKey(publicKey), adIdBytes);
+            const { adPDA, vaultPDA } = getPDA(walletPublicKey, adIdBytes);
             const SERVICE_FEE = new PublicKey("C3qzo7FpXSgQ7ytMdjhqjd3R5ZWReEYFeHdKD7oyXpLz");
 
             const initIx = await program.methods.initialiseAd(adIdBytes).accounts({
-                ad: adPDA, vault: vaultPDA, advertiser: new PublicKey(publicKey),
+                advertiser: walletPublicKey,
                 authority: AUTHORITY, systemProgram: SystemProgram.programId,
             }).instruction();
 
             const tx = await program.methods.deposit(new BN(lamports)).accounts({
-                ad: adPDA, vault: vaultPDA, advertiser: new PublicKey(publicKey),
+                advertiser: walletPublicKey,
                 serviceFee: SERVICE_FEE, systemProgram: SystemProgram.programId,
             }).preInstructions([initIx]).rpc();
 
@@ -141,7 +141,7 @@ export default function Three({ next, back, adID }) {
             const res = await fetch("/api/crud/Advertiser-campaign-step-3", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({ publicKey, maximim_cost_per_bid, click: clickValue, adID }),
+                body: JSON.stringify({ publicKey: walletPublicKey.toString(), maximim_cost_per_bid, click: clickValue, adID }),
             });
 
             if (!res.ok) {
@@ -171,16 +171,11 @@ export default function Three({ next, back, adID }) {
 
     const connectPhantom = async () => {
         try {
-            if (!window?.solana?.isPhantom) { alert("Phantom wallet not found"); return; }
-            const res = await window.solana.connect();
-            setPublicKey(res.publicKey.toString());
+            await connect();
         } catch (err) { console.error("Wallet connection failed", err); }
     };
-
     const disconnectPhantom = async () => {
-        if (!window.solana) return;
-        await window.solana.disconnect();
-        setPublicKey(null);
+        await disconnect();
     };
 
     const steps = [
@@ -258,7 +253,7 @@ export default function Three({ next, back, adID }) {
                                 <h1 className="text-xl font-semibold text-white tracking-tight mb-1">Pay with SOL</h1>
                                 <p className="text-xs text-gray-600 mb-8">Connect your wallet and set your bid strategy</p>
 
-                                {!publicKey && (
+                             {!walletPublicKey && (
                                     <button
                                         onClick={connectPhantom}
                                         className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 transition-all duration-200"
@@ -270,13 +265,12 @@ export default function Three({ next, back, adID }) {
                                     </button>
                                 )}
 
-                                {publicKey && (
+                              {walletPublicKey && (
                                     <div className="space-y-8">
 
                                         <div className="p-4 bg-[#0d0d0d] border border-gray-800/50 rounded-lg">
                                             <p className="text-xs text-gray-600 uppercase tracking-widest mb-1.5">Wallet Address</p>
-                                            <p className="text-sm text-gray-200 font-mono break-all">{publicKey}</p>
-                                        </div>
+                                            <p className="text-sm text-gray-200 font-mono break-all">{walletPublicKey.toString()}</p>                                        </div>
 
                                         <button
                                             onClick={disconnectPhantom}
@@ -382,7 +376,7 @@ export default function Three({ next, back, adID }) {
                                 </button>
                                 <button
                                     onClick={Initialize_and_Deposit}
-                                    className="px-6 py-2.5 rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                                    className="px-6 py-2.5 cursor-pointer rounded-lg bg-[#161616] text-gray-200 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                                     style={{ border: `1px solid ${alpha(0.25)}` }}
                                     onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.boxShadow = `0 0 18px ${alpha(0.12)}`; e.currentTarget.style.color = '#ffffff'; }}
                                     onMouseLeave={e => { e.currentTarget.style.borderColor = alpha(0.25); e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.color = ''; }}

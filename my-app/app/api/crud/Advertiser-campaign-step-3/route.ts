@@ -3,34 +3,34 @@ import { Prisma } from "@/generated/prisma/client";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
+    try {
+        const { publicKey, maximim_cost_per_bid, click, adID } = await req.json();
 
-    const { publicKey, maximim_cost_per_bid, click, adID } = await req.json();
+        const totalCost = new Prisma.Decimal(maximim_cost_per_bid).mul(new Prisma.Decimal(click));
 
-    const totalCost = new Prisma.Decimal(maximim_cost_per_bid).mul(new Prisma.Decimal(click));
+        await prisma.ad.update({
+            where: { id: adID },
+            data: {
+                wallet_address: publicKey,
+                cost_per_click: new Prisma.Decimal(maximim_cost_per_bid),
+                Clicks: Number(click),
+                Cost: totalCost,
+                RemainingAmount: Math.round(totalCost.toNumber() * 1_000_000_000)
+            }
+        });
 
-
-    const res = await prisma.ad.update({
-        where: {
-            id: adID
-        },
-        data: {
-            wallet_address: publicKey,
-            cost_per_click: new Prisma.Decimal(maximim_cost_per_bid),
-            Clicks: Number(click),
-            Cost: totalCost,
-            RemainingAmount: Math.round(totalCost.toNumber() * 1_000_000_000)
-        }
-    })
-    return NextResponse.json({ success: true })
-
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        console.error("POST /Advertiser-campaign-step-3 failed:", err);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
 }
 
 import { auth } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(req: Request) {
     const session = await auth();
-    if (!session || !session.user?.email) return;
-
+    if (!session || !session.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const user = await prisma.user.findUnique({
         where: { email: session.user.email },
         select: { accent: true },

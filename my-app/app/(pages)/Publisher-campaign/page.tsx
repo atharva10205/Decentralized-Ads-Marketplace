@@ -17,6 +17,12 @@ export default function WebsiteRegistrationForm() {
     const [hasExistingWallet, setHasExistingWallet] = useState(false);
     const [userName, setUserName] = useState("");
     const [userImage, setUserImage] = useState("");
+    const [toast, setToast] = useState<string | null>(null);
+
+    const showToast = (msg: string) => {
+        setToast(msg);
+        setTimeout(() => setToast(null), 3500);
+    };
 
     const router = useRouter();
 
@@ -81,7 +87,16 @@ export default function WebsiteRegistrationForm() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ websiteName, websiteURL, walletAddress, keywords, selectedNiches }),
             });
+
+            if (res.status === 409) {
+                const data = await res.json();
+                showToast(data.error ?? "This website URL is already registered.");
+                setLoading(false);
+                return;
+            }
+
             if (!res.ok) throw new Error("Request failed");
+
             const data = await res.json();
             if (data.success === true) {
                 setLoading(false);
@@ -126,6 +141,16 @@ export default function WebsiteRegistrationForm() {
                 </div>
             )}
 
+            {toast && (
+                <div className="fixed bottom-6  left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-lg bg-[#1a1a1a] border border-red-500/30 shadow-xl">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                    <p className="text-sm text-red-300 font-mono">{toast}</p>
+                    <button onClick={() => setToast(null)} className="text-gray-600 cursor-pointer hover:text-gray-300 transition-colors ml-2">
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            )}
+
             <div className="min-h-screen bg-[#0a0a0a] text-gray-300">
 
                 <header className="bg-[#0c0c0c] border-b border-[#1f1f1f]">
@@ -134,7 +159,7 @@ export default function WebsiteRegistrationForm() {
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => router.back()}
-                                    className="w-7 h-7 rounded-md bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center hover:border-gray-600 hover:text-gray-300 text-gray-500 transition-all duration-150"
+                                    className="w-7 cursor-pointer h-7 rounded-md bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center hover:border-gray-600 hover:text-gray-300 text-gray-500 transition-all duration-150"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -233,7 +258,6 @@ export default function WebsiteRegistrationForm() {
                                 )}
                             </div>
 
-                            {/* Niches */}
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className={`text-xs uppercase tracking-widest font-mono ${errors.selectedNiches ? 'text-red-400' : 'text-gray-600'}`}>
@@ -242,7 +266,7 @@ export default function WebsiteRegistrationForm() {
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs text-gray-600 font-mono">{selectedNiches.length} / 15</span>
                                         {selectedNiches.length > 0 && (
-                                            <button onClick={() => setSelectedNiches([])} className="text-xs text-gray-500 hover:text-gray-300 transition-colors font-mono">
+                                            <button onClick={() => setSelectedNiches([])} className="text-xs cursor-pointer text-gray-500 hover:text-gray-300 transition-colors font-mono">
                                                 Clear all
                                             </button>
                                         )}
@@ -253,13 +277,12 @@ export default function WebsiteRegistrationForm() {
                                 </p>
                                 {errors.selectedNiches && <p className="mb-3 text-xs text-red-400 font-mono">{errors.selectedNiches}</p>}
 
-                                {/* Selected pills */}
                                 {selectedNiches.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mb-4">
                                         {selectedNiches.map((niche, i) => (
                                             <div key={i} className="flex items-center gap-1.5 bg-[#0d0d0d] border border-gray-800/50 rounded-lg px-3 py-1.5 text-xs text-gray-300">
                                                 <span>{niche}</span>
-                                                <button onClick={() => removeNiche(niche)} className="text-gray-600 hover:text-gray-300 transition-colors">
+                                                <button onClick={() => removeNiche(niche)} className="text-gray-600 cursor-pointer hover:text-gray-300 transition-colors">
                                                     <X className="w-3 h-3" />
                                                 </button>
                                             </div>

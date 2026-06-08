@@ -234,9 +234,16 @@ const Earnings = () => {
     const totalEarned = transactionList.reduce((sum, tx) => sum + tx.earnings, 0);
 
     const Withdraw_BTN = async () => {
-
+        if (totalBalanceSOL === 0) {
+            addToast("No balance to withdraw", "info");
+            return;
+        }
         if (!wallet.connected) {
-            await wallet.connect();
+            try {
+                await wallet.connect();
+            } catch (e) {
+                addToast("Failed to connect wallet. Please connect manually.", "error");
+            }
             return;
         }
         if (!wallet.publicKey || !wallet.signTransaction) {
