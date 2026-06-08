@@ -49,7 +49,7 @@ const Websites = () => {
     }, []);
 
     const handleCopy = (publisherUrl: string) => {
-        const code = `<div id="my-widget"></div>\n<script src="https://clickora-seven.vercel.app//my-widget.js" data-id="${publisherUrl}"></script>`;
+        const code = `<div id="my-widget"></div>\n<script src="https://clickora-seven.vercel.app/my-widget.js" data-id="${publisherUrl}"></script>`;
         navigator.clipboard.writeText(code);
         setCopiedUrl(publisherUrl);
         setTimeout(() => setCopiedUrl(null), 2000);
@@ -255,7 +255,7 @@ const Websites = () => {
                                                 &lt;div id="my-widget"&gt;&lt;/div&gt;
                                             </code>
                                             <code className="text-xs font-mono leading-relaxed">
-                                                <span className="text-gray-500">&lt;script src="http://localhost:3000/my-widget.js" data-id="</span>
+                                                <span className="text-gray-500">&lt;script src="https://clickora-seven.vercel.app/my-widget.js" data-id="</span>
                                                 <span style={{ color: accent }}>{site.publisher_url}</span>
                                                 <span className="text-gray-500">"&gt;&lt;/script&gt;</span>
                                             </code>
