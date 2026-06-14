@@ -293,7 +293,6 @@ export default function Three({ next, back, adID }) {
                                             Disconnect Wallet
                                         </button>
 
-                                        {/* CPC */}
                                         <div>
                                             <p className="text-xs text-gray-600 uppercase tracking-widest mb-1">Bid Strategy</p>
                                             <p className="text-xs text-gray-600 mb-4">Your bid strategy defines how we should bid for your ad in auctions</p>

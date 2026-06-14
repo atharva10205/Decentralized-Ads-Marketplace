@@ -125,7 +125,6 @@ const Analytics = () => {
                   
                 </div>
 
-                {/* Summary Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                     {summaryCards.map((item) => (
                         <div
@@ -143,7 +142,6 @@ const Analytics = () => {
                     ))}
                 </div>
 
-                {/* Chart */}
                 <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl p-5 mb-4">
                     <div className="flex items-center justify-between mb-5">
                         <div>
@@ -203,7 +201,6 @@ const Analytics = () => {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Top Sites */}
                 <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl p-5">
                     <h2 className="text-sm font-semibold text-white mb-4">Top Sites</h2>
                     {topSites.length === 0 ? (

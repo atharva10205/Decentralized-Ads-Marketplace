@@ -168,7 +168,6 @@ export default function Two({ adID, next, back }: StepProps) {
 
             <div className="min-h-screen bg-[#0a0a0a] text-gray-300">
 
-                {/* Header */}
                 <header className="bg-[#0c0c0c] border-b border-[#1f1f1f]">
                     <div className="max-w-6xl mx-auto px-4 sm:px-6">
                         <div className="flex items-center justify-between h-14">
@@ -190,10 +189,10 @@ export default function Two({ adID, next, back }: StepProps) {
                     </div>
                 </header>
 
-                <main className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-8">                    <div className="flex flex-col lg:flex-row gap-6">
-
-                    {/* Sidebar */}
-                    <aside className="hidden lg:block lg:w-56 flex-shrink-0">                            <div className="bg-[#111111] border border-gray-800/70 rounded-xl p-5 sticky top-8">
+                <main className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-8">                    
+                    <div className="flex flex-col lg:flex-row gap-6">
+                    <aside className="hidden lg:block lg:w-56 flex-shrink-0">                            
+                        <div className="bg-[#111111] border border-gray-800/70 rounded-xl p-5 sticky top-8">
                         <h3 className="text-xs font-semibold text-gray-200 uppercase tracking-widest mb-5">Business Information</h3>
                         <div className="space-y-4">
                             {steps.map((step, i) => (
@@ -227,11 +226,9 @@ export default function Two({ adID, next, back }: StepProps) {
                     </div>
                     </aside>
 
-                    {/* Main card */}
                     <div className="flex-1">
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="p-4 sm:p-8 space-y-8">
-                                {/* Step label */}
                                 <div>
                                     <div className="flex items-center gap-2 text-xs text-gray-600 font-mono mb-4">
                                         <span>Step 2 of 3</span>
@@ -241,7 +238,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                     <h1 className="text-xl font-semibold text-white tracking-tight mb-1">Tell us more about your business</h1>
                                 </div>
 
-                                {/* Title */}
                                 <div>
                                     <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Title</label>
                                     <p className="text-xs text-gray-600 mb-3">Title which best represents your business</p>
@@ -261,7 +257,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                     {errors.title && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.title}</p>}
                                 </div>
 
-                                {/* Description */}
                                 <div>
                                     <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Description</label>
                                     <p className="text-xs text-gray-600 mb-3">Describe what makes your business unique</p>
@@ -281,7 +276,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                     {errors.description && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.description}</p>}
                                 </div>
 
-                                {/* Image upload */}
                                 <div>
                                     <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Business Image</label>
                                     <p className="text-xs text-gray-600 mb-3">Upload an image that represents your business (max 5MB)</p>
@@ -314,7 +308,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                     {errors.image && <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.image}</p>}
                                 </div>
 
-                                {/* Niches */}
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
                                         <label className={`text-xs uppercase tracking-widest font-mono ${errors.selectedTags ? 'text-red-400' : 'text-gray-600'}`}>
@@ -334,7 +327,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                     </p>
                                     {errors.selectedTags && <p className="mb-3 text-xs text-red-400 font-mono">{errors.selectedTags}</p>}
 
-                                    {/* Selected pills */}
                                     {selectedTags.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mb-4">
                                             {selectedTags.map((tag, i) => (
@@ -348,7 +340,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                         </div>
                                     )}
 
-                                    {/* Niche grid */}
                                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2">                                            {niches.map((niche) => {
                                         const tagText = `${niche.emoji} ${niche.label}`;
                                         const isSelected = selectedTags.includes(tagText);
@@ -391,7 +382,6 @@ export default function Two({ adID, next, back }: StepProps) {
                                     </div>
                                 </div>
 
-                                {/* Keywords */}
                                 <div>
                                     <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Keywords</label>
                                     <p className="text-xs text-gray-600 mb-3">
@@ -425,7 +415,6 @@ export default function Two({ adID, next, back }: StepProps) {
 
                             </div>
 
-                            {/* Footer */}
                             <div className="px-4 sm:px-8 py-4 sm:py-5 bg-[#0d0d0d] border-t border-gray-800/60 flex items-center justify-between gap-3">
                                 <button
                                     onClick={back}

@@ -158,7 +158,6 @@ const Settings = () => {
 
                     <div className="grid gap-5">
 
-                        {/* ── Account Role ── */}
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-800/60 flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-[#161616] border border-gray-800/60">
@@ -249,7 +248,6 @@ const Settings = () => {
                             </div>
                         </div>
 
-                        {/* ── Profile Settings ── */}
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-800/60 flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-[#161616] border border-gray-800/60">
@@ -392,7 +390,6 @@ const Settings = () => {
                 </div>
             </main>
 
-            {/* ── Delete Confirmation Modal ── */}
             {showDeleteModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <div

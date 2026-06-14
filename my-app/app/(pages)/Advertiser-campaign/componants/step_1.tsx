@@ -143,7 +143,6 @@ export default function One({ next, setAdID }: OneProps) {
                 }
             `}</style>
 
-            {/* Loading overlay */}
             {loading && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                     <div className="flex flex-col items-center gap-4">
@@ -155,7 +154,6 @@ export default function One({ next, setAdID }: OneProps) {
 
             <div className="min-h-screen bg-[#0a0a0a] text-gray-300">
 
-                {/* Header */}
                 <header className="bg-[#0c0c0c] border-b border-[#1f1f1f]">
                     <div className="max-w-6xl mx-auto px-6">
                         <div className="flex items-center justify-between h-14">
@@ -179,7 +177,6 @@ export default function One({ next, setAdID }: OneProps) {
 
                 <main className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-8">                    <div className="flex flex-col lg:flex-row gap-6">
 
-                    {/* Sidebar steps */}
                     <aside className="hidden lg:block lg:w-56 flex-shrink-0">
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl p-5 sticky top-8">
                             <h3 className="text-xs font-semibold text-gray-200 uppercase tracking-widest mb-5">Business Information</h3>
@@ -201,7 +198,6 @@ export default function One({ next, setAdID }: OneProps) {
                                                 {step.label}
                                             </span>
                                         </div>
-                                        {/* Connector line */}
                                         {i < steps.length - 1 && (
                                             <div className="absolute left-3.5 top-7 w-px h-4 bg-gray-800/60" />
                                         )}
@@ -209,7 +205,6 @@ export default function One({ next, setAdID }: OneProps) {
                                 ))}
                             </div>
 
-                            {/* Sub-items for step 1 */}
                             <div className="mt-5 ml-10 space-y-2">
                                 <p className="text-xs text-gray-400 font-medium">Your business name</p>
                                 <p className="text-xs text-gray-600">Choose your destination</p>
@@ -217,11 +212,10 @@ export default function One({ next, setAdID }: OneProps) {
                         </div>
                     </aside>
 
-                    {/* Main card */}
                     <div className="flex-1">
                         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
 
-                            <div className="p-4 sm:p-8">                                    {/* Step label */}
+                            <div className="p-4 sm:p-8">                          
                                 <div className="flex items-center gap-2 text-xs text-gray-600 font-mono mb-4">
                                     <span>Step 1 of 3</span>
                                     <ChevronRight className="w-3 h-3" />
@@ -231,8 +225,7 @@ export default function One({ next, setAdID }: OneProps) {
                                 <h1 className="text-xl font-semibold text-white tracking-tight mb-1">Tell us about your business</h1>
                                 <p className="text-xs text-gray-600 mb-8">Get personalized suggestions based on your business information</p>
 
-                                {/* Business name */}
-                                <div className="mb-8">
+=                                <div className="mb-8">
                                     <label className="text-xs text-gray-600 uppercase tracking-widest mb-2 block">Business Name</label>
                                     <input
                                         type="text"
@@ -248,7 +241,6 @@ export default function One({ next, setAdID }: OneProps) {
                                     <p className="mt-1.5 text-xs text-gray-600">Your business name will appear in your ads</p>
                                 </div>
 
-                                {/* Divider */}
                                 <div className="relative my-8">
                                     <div className="absolute inset-0 flex items-center">
                                         <div className="w-full border-t border-gray-800/50" />
@@ -258,7 +250,6 @@ export default function One({ next, setAdID }: OneProps) {
                                     </div>
                                 </div>
 
-                                {/* Destination */}
                                 <div>
                                     <h3 className="text-sm font-semibold text-gray-200 mb-1">Choose your destination</h3>
                                     <p className="text-xs text-gray-600 mb-5">Select where you want to send people who click your ad</p>

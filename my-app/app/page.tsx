@@ -67,7 +67,6 @@ export default function GetStarted() {
     return (
         <div className="min-h-screen bg-black text-white font-mono overflow-x-hidden relative" onClick={handleParticleClick}>
 
-            {/* Floating particles */}
             {particles.map(particle => (
                 <div
                     key={particle.id}
@@ -271,7 +270,6 @@ export default function GetStarted() {
                             <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-teal-500 translate-x-[-100%] group-hover:translate-x-0 transition-transform" />
                         </button>
 
-                        {/* Fun mouse trail effect for this button */}
                         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-[10px] text-zinc-800 whitespace-nowrap animate-pulse">
                             ⚡ click anywhere for particle effect ⚡
                         </div>

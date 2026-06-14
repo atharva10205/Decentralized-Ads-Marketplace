@@ -428,7 +428,6 @@ const Dashboard = () => {
 
     return (
         <div className="flex h-screen bg-[#0a0a0a] text-gray-200 font-sans">
-            {/* Mobile overlay */}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/60 z-20 lg:hidden"
@@ -443,7 +442,6 @@ const Dashboard = () => {
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            {/* Hamburger — only visible on mobile */}
                             <button
                                 onClick={() => setSidebarOpen(true)}
                                 className="lg:hidden flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#161616] transition-colors"
@@ -507,7 +505,6 @@ const Dashboard = () => {
                         ) : (
                             <div className="p-5 space-y-4">
 
-                                {/* Compact summary row */}
                                 <div className="flex items-center gap-4">
                                     <StatusDonut campaigns={campaigns} accent={accent} />
                                     <div className="flex gap-6">
@@ -532,10 +529,8 @@ const Dashboard = () => {
                                     </div>
                                 </div>
 
-                                {/* Divider */}
                                 <div className="h-px bg-[#1a1a1a]" />
 
-                                {/* Campaign list */}
                                 <div className="space-y-3 overflow-y-auto"
                                     style={{ maxHeight: '14rem', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}>
                                     {campaigns.map((c, idx) => {
@@ -543,7 +538,6 @@ const Dashboard = () => {
                                         const isActive = c.status === 'Active';
                                         return (
                                             <div key={c.name}>
-                                                {/* Name + spend on one line */}
                                                 <div className="flex items-center justify-between mb-1.5">
                                                     <div className="flex items-center gap-2 min-w-0">
                                                         <span className="text-xs text-gray-700 tabular-nums w-4 flex-shrink-0">{idx + 1}</span>
@@ -625,7 +619,6 @@ const Dashboard = () => {
                             </div>
                         ) : (
                             <>
-                                {/* Desktop table — hidden on mobile */}
                                 <div className="hidden sm:block overflow-y-auto"
                                     style={{ maxHeight: '16rem', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}>
                                     <table className="w-full">
@@ -677,14 +670,12 @@ const Dashboard = () => {
                                     </table>
                                 </div>
 
-                                {/* Mobile cards — hidden on desktop */}
                                 <div className="sm:hidden divide-y divide-[#141414] overflow-y-auto"
                                     style={{ maxHeight: '20rem', scrollbarWidth: 'thin', scrollbarColor: '#2a2a2a transparent' }}>
                                     {campaigns.map((c, idx) => (
                                         <div key={c.name}
                                             onClick={() => router.push('/Advertiser/Campaigns')}
                                             className="px-4 py-3.5 hover:bg-[#111] transition-colors cursor-pointer">
-                                            {/* Row 1: index + name + status */}
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     <span className="text-xs text-gray-700 tabular-nums w-4 flex-shrink-0">{idx + 1}</span>
@@ -697,7 +688,6 @@ const Dashboard = () => {
                                                     {c.status}
                                                 </span>
                                             </div>
-                                            {/* Row 2: performance bar */}
                                             <div className="flex items-center gap-2 mb-2">
                                                 <div className="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
                                                     <div className="h-full rounded-full"
@@ -705,7 +695,6 @@ const Dashboard = () => {
                                                 </div>
                                                 <span className="text-xs text-gray-600 tabular-nums flex-shrink-0">{c.performance}%</span>
                                             </div>
-                                            {/* Row 3: stats */}
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-xs text-gray-600">

@@ -231,7 +231,6 @@ const Wallet = () => {
 
         </div>
 
-        {/* Transaction History */}
         <div className="bg-[#111111] border border-gray-800/70 rounded-xl overflow-hidden">
 
           <div className="px-6 py-5 border-b border-gray-800/60">
@@ -298,7 +297,6 @@ const Wallet = () => {
                 </div>
               </div>
 
-              {/* Mobile cards */}
               <div className="sm:hidden divide-y divide-gray-800/40">
                 {data.transactions.map((tx) => (
                   <div key={tx.id} className="px-4 py-4 hover:bg-[#161616]/60 transition-colors duration-150">

@@ -400,11 +400,9 @@ const CampaignPage = () => {
                 input[type=number] { -moz-appearance: textfield; }
             `}</style>
 
-            {/* ── NAVBAR ── */}
             <div className="sticky top-0 z-30 bg-[#080808]/90 backdrop-blur-md border-b border-white/[0.04]">
                 <div className="max-w-5xl mx-auto px-4 sm:px-8 h-14 flex items-center justify-between gap-2">
 
-                    {/* Left: back button */}
                     <button
                         onClick={() => router.back()}
                         className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors duration-150 shrink-0"
@@ -413,9 +411,7 @@ const CampaignPage = () => {
                         <span className="hidden sm:inline">Back</span>
                     </button>
 
-                    {/* Right: status badge + actions */}
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                        {/* Status badge — always visible */}
                         <span className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full border shrink-0"
                             style={{
                                 background: ad?.status ? alpha(0.06) : 'rgba(255,255,255,0.03)',
@@ -427,7 +423,6 @@ const CampaignPage = () => {
                             {ad?.status ? 'Active' : 'Paused'}
                         </span>
 
-                        {/* Editing mode buttons */}
                         {editing ? (
                             <>
                                 <button
@@ -450,7 +445,6 @@ const CampaignPage = () => {
                             </>
                         ) : (
                             <>
-                                {/* Edit — always visible */}
                                 <button
                                     onClick={() => setEditing(true)}
                                     className="flex items-center gap-1 px-2.5 py-1.5 cursor-pointer rounded-lg text-xs text-gray-500 hover:text-gray-200 border border-white/[0.06] hover:border-white/[0.12] transition-all duration-150"
@@ -459,7 +453,6 @@ const CampaignPage = () => {
                                     <span className="hidden sm:inline">Edit</span>
                                 </button>
 
-                                {/* Desktop: full action buttons */}
                                 <div className="hidden sm:flex items-center gap-2">
                                     <button
                                         onClick={openAddFundsModal}
@@ -489,7 +482,6 @@ const CampaignPage = () => {
                                     </button>
                                 </div>
 
-                                {/* Mobile: kebab menu */}
                                 <div className="relative sm:hidden">
                                     <button
                                         onClick={() => setShowMobileMenu(prev => !prev)}
@@ -499,12 +491,10 @@ const CampaignPage = () => {
                                     </button>
                                     {showMobileMenu && (
                                         <>
-                                            {/* Backdrop */}
                                             <div
                                                 className="fixed inset-0 z-40"
                                                 onClick={() => setShowMobileMenu(false)}
                                             />
-                                            {/* Dropdown */}
                                             <div
                                                 className="absolute right-0 top-10 z-50 w-44 rounded-xl overflow-hidden py-1"
                                                 style={{ background: '#141414', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', animation: 'fadeUp 0.15s ease' }}
@@ -543,10 +533,8 @@ const CampaignPage = () => {
                 </div>
             </div>
 
-            {/* ── MAIN CONTENT ── */}
             <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-10">
 
-                {/* Header */}
                 <div className="fade-up mb-8 sm:mb-10">
                     <p className="text-[10px] text-gray-700 uppercase tracking-[0.2em] mb-2 sm:mb-3">Campaign</p>
                     <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-1 break-words">
@@ -555,7 +543,6 @@ const CampaignPage = () => {
                     <p className="text-xs text-gray-700 truncate max-w-xs sm:max-w-md">{id}</p>
                 </div>
 
-                {/* Stat cards grid */}
                 <div className="fade-up-1 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mb-6 sm:mb-8">
                     {statCards.map((card) => (
                         <div
@@ -574,7 +561,6 @@ const CampaignPage = () => {
                     ))}
                 </div>
 
-                {/* Budget progress bar */}
                 <div className="fade-up-2 bg-[#0e0e0e] rounded-xl p-4 sm:p-5 border border-white/[0.05] mb-4">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[10px] text-gray-600 uppercase tracking-[0.15em]">Budget consumption</span>
@@ -611,10 +597,8 @@ const CampaignPage = () => {
                     </div>
                 </div>
 
-                {/* Details + Sidebar */}
                 <div className="fade-up-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-                    {/* Campaign details card */}
                     <div className="lg:col-span-2 bg-[#0e0e0e] rounded-xl border border-white/[0.05] overflow-hidden">
                         <div className="px-4 sm:px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
                             <h2 className="text-[10px] text-gray-600 uppercase tracking-[0.15em]">Campaign details</h2>
@@ -691,7 +675,6 @@ const CampaignPage = () => {
                                                 ))}
                                             </div>
                                         )}
-                                        {/* Tag grid: 3 cols on mobile, 5 on sm+ */}
                                         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-1.5">
                                             {niches.map((niche) => {
                                                 const tagText = `${niche.emoji} ${niche.label}`;
@@ -748,10 +731,8 @@ const CampaignPage = () => {
                         </div>
                     </div>
 
-                    {/* Sidebar */}
                     <div className="space-y-4">
 
-                        {/* Financials card */}
                         <div className="bg-[#0e0e0e] rounded-xl border border-white/[0.05] overflow-hidden">
                             <div className="px-5 py-4 border-b border-white/[0.04]">
                                 <h3 className="text-[10px] text-gray-600 uppercase tracking-[0.15em]">Financials</h3>
@@ -778,7 +759,6 @@ const CampaignPage = () => {
                                     <p className="text-[10px] text-gray-700">Available for withdrawal</p>
                                 </div>
 
-                                {/* Mobile: Add funds + withdraw side by side */}
                                 <div className="flex gap-2 sm:hidden">
                                     <button
                                         onClick={openAddFundsModal}
@@ -802,7 +782,6 @@ const CampaignPage = () => {
                                     </button>
                                 </div>
 
-                                {/* Desktop: single withdraw button */}
                                 <button
                                     onClick={() => setShowWithdrawModal(true)}
                                     className="hidden sm:flex w-full cursor-pointer items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium transition-all duration-150"
@@ -816,7 +795,6 @@ const CampaignPage = () => {
                             </div>
                         </div>
 
-                        {/* Meta card */}
                         <div className="bg-[#0e0e0e] rounded-xl border border-white/[0.05] overflow-hidden">
                             <div className="px-5 py-4 border-b border-white/[0.04]">
                                 <h3 className="text-[10px] text-gray-600 uppercase tracking-[0.15em]">Meta</h3>
@@ -849,7 +827,6 @@ const CampaignPage = () => {
                 </div>
             </div>
 
-            {/* ── ADD FUNDS MODAL ── */}
             {showAddFundsModal && (
                 <div
                     className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -861,7 +838,6 @@ const CampaignPage = () => {
                         style={{ background: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)', animation: 'fadeUp 0.25s ease' }}
                     >
                         <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 border-b border-white/[0.04] flex items-center justify-between">
-                            {/* Drag handle on mobile */}
                             <div className="absolute top-2 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-white/[0.1] sm:hidden" />
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -1037,7 +1013,6 @@ const CampaignPage = () => {
                 </div>
             )}
 
-            {/* ── WITHDRAW MODAL ── */}
             {showWithdrawModal && (
                 <div
                     className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -1118,7 +1093,6 @@ const CampaignPage = () => {
                 </div>
             )}
 
-            {/* ── WITHDRAWAL SUCCESS MODAL ── */}
             {showSuccessModal && (
                 <div
                     className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -1169,7 +1143,6 @@ const CampaignPage = () => {
                 </div>
             )}
 
-            {/* ── DELETE CONFIRMATION MODAL ── */}
             {showDeleteModal && (
                 <div
                     className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -1236,7 +1209,6 @@ const CampaignPage = () => {
                 </div>
             )}
 
-            {/* ── TOAST ── */}
             {toast && (
                 <div
                     className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-medium"

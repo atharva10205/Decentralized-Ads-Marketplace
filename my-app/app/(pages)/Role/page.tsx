@@ -63,17 +63,15 @@ export default function RoleSelection() {
 
             <div className="min-h-screen bg-[#0a0a0a] text-gray-200 font-mono flex flex-col">
 
-                {/* ── Header ── */}
                 <header className="flex items-center justify-between px-8 py-5 border-b border-[#1c1c1c]">
                     <span className="text-base font-bold text-white tracking-wider">AdFlow</span>
                     <span className="text-[10px] text-[#2a2a2a] uppercase tracking-widest">Role setup</span>
                 </header>
 
-                {/* ── Main ── */}
                 <main className="flex-1 flex items-center justify-center px-6 py-16">
                     <div className="w-full max-w-xl">
 
-                        {/* Heading */}
+                        
                         <div className="mb-10">
                             <div className="inline-flex items-center gap-2 bg-[#111] border border-[#1e1e1e] text-[#444] text-[10px] px-3 py-1.5 rounded-full mb-6 uppercase tracking-widest">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
@@ -87,7 +85,6 @@ export default function RoleSelection() {
                             </p>
                         </div>
 
-                        {/* Role cards */}
                         <div className="space-y-3">
                             {roles.map((role) => {
                                 const Icon = role.icon;
@@ -107,14 +104,12 @@ export default function RoleSelection() {
                                                 border: isHovered ? '1px solid #2e2e2e' : '1px solid #1c1c1c',
                                             }}
                                         >
-                                            {/* Active indicator bar */}
                                             <div
                                                 className="absolute left-0 top-4 bottom-4 w-px rounded-full transition-all duration-200"
                                                 style={{ background: isHovered ? '#fff' : '#1a1a1a' }}
                                             />
 
                                             <div className="flex items-start gap-5 px-6 py-6">
-                                                {/* Icon */}
                                                 <div
                                                     className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border transition-all duration-200"
                                                     style={{
@@ -125,7 +120,6 @@ export default function RoleSelection() {
                                                     <Icon className="w-4 h-4 text-[#666]" />
                                                 </div>
 
-                                                {/* Text */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-1.5">
                                                         <span className="text-sm font-semibold text-white">
@@ -143,7 +137,6 @@ export default function RoleSelection() {
                                                     </p>
                                                 </div>
 
-                                                {/* Arrow */}
                                                 <div
                                                     className="flex-shrink-0 self-center transition-all duration-200"
                                                     style={{

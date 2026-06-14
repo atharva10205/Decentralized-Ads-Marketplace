@@ -15,7 +15,11 @@ export const authOptions = {
             if (!profile?.email) return false
             await prisma.user.upsert({
                 where: { email: profile.email },
-                create: { name: profile.name ?? "", email: profile.email, image: profile.picture ?? "" },
+                create: {
+                    name: profile.name ?? "",
+                    email: profile.email,
+                    image: profile.picture ?? ""
+                },
                 update: { name: profile.name ?? "", image: profile.picture ?? "" },
             })
             return true

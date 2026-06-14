@@ -242,7 +242,6 @@ const HelpPage = () => {
                 .flow-arr { color: #3f3f46; font-size: 12px; }
             `}</style>
 
-            {/* Nav */}
             <div className="sticky top-0 z-30 bg-[#080808]/90 backdrop-blur-md border-b border-white/[0.04]">
                 <div className="max-w-4xl mx-auto px-8 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -262,14 +261,12 @@ const HelpPage = () => {
 
             <div className="max-w-4xl mx-auto px-8 py-12 pb-20">
 
-                {/* Hero */}
                 <div className="mb-12">
                     <p className="text-[10px] text-gray-700 uppercase tracking-[0.2em] mb-3">Documentation</p>
                     <h1 className="text-3xl font-bold text-white tracking-tight mb-2">How it works</h1>
                     <p className="text-xs text-gray-700">Everything you need to know about campaigns, funds, and on-chain mechanics.</p>
                 </div>
 
-                {/* Search */}
                 <div className="relative mb-10">
                     <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-700 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                     <input
@@ -279,7 +276,6 @@ const HelpPage = () => {
                     />
                 </div>
 
-                {/* TOC */}
                 <div className="grid grid-cols-3 gap-2 mb-12">
                     {toc.map(t => (
                         <button
@@ -293,7 +289,6 @@ const HelpPage = () => {
                     ))}
                 </div>
 
-                {/* Sections */}
                 {sections.map((sec, si) => (
                     <div key={sec.id}>
                         <div id={sec.id} className="help-section mb-10">

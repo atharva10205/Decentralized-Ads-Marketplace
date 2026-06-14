@@ -438,7 +438,6 @@ const Campaigns = () => {
                                 animation: 'fadeScaleIn 0.25s ease-out',
                             }}
                         >
-                            {/* Close button */}
                             <button
                                 onClick={() => setShowBudgetPopup(false)}
                                 className="absolute top-4 right-4 text-gray-600 hover:text-gray-300 transition-colors"
@@ -447,7 +446,6 @@ const Campaigns = () => {
                             </button>
 
                             <div className="flex flex-col items-center text-center gap-4">
-                                {/* Icon */}
                                 <div className="w-12 h-12 rounded-full bg-red-950/50 border border-red-900/30 flex items-center justify-center">
                                     <AlertCircle className="w-5 h-5 text-red-400" />
                                 </div>
