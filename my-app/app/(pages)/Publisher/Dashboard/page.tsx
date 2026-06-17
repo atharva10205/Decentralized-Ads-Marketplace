@@ -388,59 +388,46 @@ const Dashboard = () => {
             <main className="flex-1 font-mono overflow-auto min-w-0">
                 <div className="p-4 sm:p-6 space-y-3">
 
-                    {websites.length === 0 && (
-                        <div className="lg:hidden mb-3">
-                            <button
-                                onClick={() => setSidebarOpen(true)}
-                                className="flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#161616] transition-colors flex-shrink-0"
-                            >
-                                <span className="w-4 h-px bg-gray-400" />
-                                <span className="w-4 h-px bg-gray-400" />
-                                <span className="w-4 h-px bg-gray-400" />
-                            </button>
-                        </div>
-                    )}
+    <div className="lg:hidden flex items-center gap-3 mb-3">
+        <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#161616] transition-colors flex-shrink-0"
+        >
+            <span className="w-4 h-px bg-gray-400" />
+            <span className="w-4 h-px bg-gray-400" />
+            <span className="w-4 h-px bg-gray-400" />
+        </button>
+        <h1 className="text-sm font-semibold font-mono text-white">Dashboard</h1>
+    </div>
 
-                    <div className="lg:hidden flex items-center gap-3 mb-3">
-    <button
-        onClick={() => setSidebarOpen(true)}
-        className="flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#161616] transition-colors flex-shrink-0"
-    >
-        <span className="w-4 h-px bg-gray-400" />
-        <span className="w-4 h-px bg-gray-400" />
-        <span className="w-4 h-px bg-gray-400" />
-    </button>
-    <h1 className="text-sm font-semibold font-mono text-white">Dashboard</h1>
-</div>
-
-<div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
-    {websites.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 sm:py-24 px-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center mb-4">
-                <Link2 className="w-5 h-5 text-gray-500" />
-            </div>
-            <p className="text-sm font-semibold text-white mb-1">No sites yet</p>
-            <p className="text-xs text-gray-600 mb-5 max-w-xs">Add your first property to start tracking earnings</p>
-            <button
-                onClick={() => router.push("/Publisher-campaign")}
-                className="px-4 py-2 cursor-pointer rounded-lg text-xs font-semibold transition-all hover:opacity-90"
-                style={{ background: accent, color: '#000000' }}
-            >
-                Add Site
-            </button>
-        </div>
-    ) : (
-        <>
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#1a1a1a]">
-                <div>
-                    <h2 className="text-sm font-semibold font-mono text-white">Revenue</h2>
-                    <p className="text-xs text-gray-600 font-mono mt-0.5">Per-site breakdown</p>
-                </div>
-                <div className="text-right">
-                    <p className="text-xs text-gray-600">{websites.length} {websites.length === 1 ? 'site' : 'sites'}</p>
-                    <p className="text-sm font-semibold text-white tabular-nums">{totalEarningsSum.toFixed(4)} <span className="text-xs text-gray-500 font-normal">SOL</span></p>
-                </div>
-            </div>
+    <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+                        {websites.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 sm:py-24 px-6 text-center">
+                                <div className="w-12 h-12 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center mb-4">
+                                    <Link2 className="w-5 h-5 text-gray-500" />
+                                </div>
+                                <p className="text-sm font-semibold text-white mb-1">No sites yet</p>
+                                <p className="text-xs text-gray-600 mb-5 max-w-xs">Add your first property to start tracking earnings</p>
+                                <button
+                                    onClick={() => router.push("/Publisher-campaign")}
+                                    className="px-4 py-2 cursor-pointer rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                                    style={{ background: accent, color: '#000000' }}
+                                >
+                                    Add Site
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#1a1a1a]">
+                                    <div>
+                                        <h2 className="text-sm font-semibold font-mono text-white">Revenue</h2>
+                                        <p className="text-xs text-gray-600 font-mono mt-0.5">Per-site breakdown</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-gray-600">{websites.length} {websites.length === 1 ? 'site' : 'sites'}</p>
+                                        <p className="text-sm font-semibold text-white tabular-nums">{totalEarningsSum.toFixed(4)} <span className="text-xs text-gray-500 font-normal">SOL</span></p>
+                                    </div>
+                                </div>
 
                                 <div className="flex flex-col sm:flex-row gap-6 p-5" style={{ maxHeight: 'none' }}>
                                     <div
