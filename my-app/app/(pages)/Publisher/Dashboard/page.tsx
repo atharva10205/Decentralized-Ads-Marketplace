@@ -388,19 +388,19 @@ const Dashboard = () => {
             <main className="flex-1 font-mono overflow-auto min-w-0">
                 <div className="p-4 sm:p-6 space-y-3">
 
-    <div className="lg:hidden flex items-center gap-3 mb-3">
-        <button
-            onClick={() => setSidebarOpen(true)}
-            className="flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#161616] transition-colors flex-shrink-0"
-        >
-            <span className="w-4 h-px bg-gray-400" />
-            <span className="w-4 h-px bg-gray-400" />
-            <span className="w-4 h-px bg-gray-400" />
-        </button>
-        <h1 className="text-sm font-semibold font-mono text-white">Dashboard</h1>
-    </div>
+                    <div className="lg:hidden flex items-center gap-3 mb-3">
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="flex flex-col gap-1 p-1.5 rounded-md hover:bg-[#161616] transition-colors flex-shrink-0"
+                        >
+                            <span className="w-4 h-px bg-gray-400" />
+                            <span className="w-4 h-px bg-gray-400" />
+                            <span className="w-4 h-px bg-gray-400" />
+                        </button>
+                        <h1 className="text-sm font-semibold font-mono text-white">Dashboard</h1>
+                    </div>
 
-    <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+                    <div className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
                         {websites.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 sm:py-24 px-6 text-center">
                                 <div className="w-12 h-12 rounded-full bg-[#161616] border border-[#222] flex items-center justify-center mb-4">
